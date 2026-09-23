@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-23T12:08:32.220Z",
+  "timestamp": "2026-09-23T12:13:13.828Z",
   "config": {
     "accountEquity": 50000,
     "maxRiskPerTradePct": 0.01,
@@ -16,40 +16,40 @@
     {
       "source": "NY_Fed_Reference_Rates",
       "status": "OK",
-      "latencyMs": 919
+      "latencyMs": 807
     },
     {
       "source": "Brent_Crude",
       "status": "OK",
-      "latencyMs": 1183
-    },
-    {
-      "source": "VIX_Index",
-      "status": "OK",
-      "latencyMs": 1213
-    },
-    {
-      "source": "US_Dollar_Index",
-      "status": "OK",
-      "latencyMs": 1241
-    },
-    {
-      "source": "Yahoo_EURUSD_Chart",
-      "status": "OK",
-      "latencyMs": 1235
+      "latencyMs": 1188
     },
     {
       "source": "US10Y_Yield",
       "status": "OK",
-      "latencyMs": 1335
+      "latencyMs": 1203
+    },
+    {
+      "source": "US_Dollar_Index",
+      "status": "OK",
+      "latencyMs": 1223
+    },
+    {
+      "source": "VIX_Index",
+      "status": "OK",
+      "latencyMs": 1226
+    },
+    {
+      "source": "Yahoo_EURUSD_Chart",
+      "status": "OK",
+      "latencyMs": 1524
     },
     {
       "source": "ECB_Deposit_Rate",
       "status": "OK",
-      "latencyMs": 704
+      "latencyMs": 865
     }
   ],
-  "compositeScore": -36.6,
+  "compositeScore": -43.9,
   "verdict": "SELL EUR/USD (Short on Pullback)",
   "weightsApplied": {
     "macro": 0.6,
@@ -58,7 +58,7 @@
   },
   "layers": {
     "macro": {
-      "score": -32.7,
+      "score": -32.8,
       "bias": "STRONG_USD",
       "factors": [
         {
@@ -80,15 +80,15 @@
         {
           "name": "European Energy Terms-of-Trade (Brent)",
           "weight": 18,
-          "rawReading": "$96.24 (30d z-score: 0.02)",
-          "normalizedScore": -0.016,
-          "weightedScore": -0.29,
+          "rawReading": "$96.32 (30d z-score: 0.03)",
+          "normalizedScore": -0.024,
+          "weightedScore": -0.43,
           "rationale": "Oil price pressure on Eurozone trade balance."
         },
         {
           "name": "US Dollar Index (DXY) 30d Momentum",
           "weight": 12,
-          "rawReading": "100.87 (+2.1% 30d)",
+          "rawReading": "100.88 (+2.1% 30d)",
           "normalizedScore": -0.939,
           "weightedScore": -11.27,
           "rationale": "Broad trade-weighted USD strength."
@@ -96,7 +96,7 @@
         {
           "name": "Volatility & Liquidity Regime (VIX)",
           "weight": 10,
-          "rawReading": "VIX: 14.31 (Regime: Risk-On)",
+          "rawReading": "VIX: 14.29 (Regime: Risk-On)",
           "normalizedScore": 0.3,
           "weightedScore": 3,
           "rationale": "Global risk appetite vs dollar liquidity hoarding."
@@ -112,93 +112,116 @@
       },
       "rawMetrics": {
         "us10y": 4.9629998207092285,
-        "brent": 96.23999786376953,
+        "brent": 96.31999969482422,
         "dxyChange": 2.1
       }
     },
     "surprise": {
-      "score": -2,
-      "status": "CONSENSUS_BALANCED",
+      "score": -38.4,
+      "status": "US_DATA_SURPASSING_EXPECTATIONS",
       "evidence": [
         {
-          "headline": "Breaking: US Nonfarm Payrolls rise by 57K in June vs. 110K expected",
-          "snippet": "Nonfarm Payrolls (NFP) in the United States (US) rose by 57K in June, the US Bureau of Labor Statistics (BLS) reported on Thursday.",
-          "date": "Jul 2, 2026",
-          "scoreContribution": -12,
+          "headline": "SK Hynix's Shares Soar — Why Barclays Sees Potential For The Stock To Double",
+          "url": "https://stocktwits.com/news-articles/markets/equity/sk-hynix-shares-soar-barclays-sees-potential-for-the-stock-to-double/cZZR30AR7qF",
+          "snippet": "Barclays set a $330 price target, more than double the stock's closing price on Monday. The bank expects a continued memory shortage to support higher...",
+          "contentSource": "FETCHED_FULL_TEXT",
+          "charCount": 3000,
+          "date": "3 days ago",
+          "scoreContribution": -19.2,
           "matchedTokens": [
-            "rose"
+            "higher",
+            "surged"
           ],
           "isNegated": false,
           "recencyWeight": 1.2
         },
         {
-          "headline": "How the Jobs Report Moves Gold and Silver: The Five-Step Chain Behind Every Move",
-          "snippet": "Gold and silver prices react inversely to the U.S. jobs report. Learn the transmission chain — NFP → real yields → dollar → metals — and...",
-          "date": "Jul 7, 2026",
-          "scoreContribution": 0,
-          "matchedTokens": [],
-          "isNegated": false,
-          "recencyWeight": 1.2
-        },
-        {
-          "headline": "NFP Preview: Benchmark revisions, fate of the March rate cut & implications for the DXY and Dow Jones",
-          "snippet": "The high-stakes January 2026 Non-Farm Payrolls (NFP) report, now set for release on February 11, 2026, has a consensus forecast of +70,000...",
-          "date": "Feb 9, 2026",
-          "scoreContribution": 0,
-          "matchedTokens": [],
-          "isNegated": false,
-          "recencyWeight": 1.2
-        },
-        {
-          "headline": "Gasoline likely to boost US consumer prices in August",
-          "snippet": "U.S. consumer prices likely accelerated in August as the cost of gasoline rebounded after two straight monthly declines,...",
-          "date": "2 weeks ago",
-          "scoreContribution": 10,
+          "headline": "USD/JPY Caught Between NFP, the Fed and MOF Intervention Risk",
+          "url": "https://www.stonex.com/en-gb/news-and-analysis/usd-jpy-caught-between-nfp-the-fed-and-mof-intervention-risk/",
+          "snippet": "USD/JPY has surpassed several intervention levels before NFP. See why a weak jobs report could spark bigger moves than another upside surprise.",
+          "contentSource": "SNIPPET_FALLBACK",
+          "charCount": 205,
+          "date": "2 days ago",
+          "scoreContribution": -9.6,
           "matchedTokens": [
-            "rebounded"
+            "surpassed"
           ],
           "isNegated": false,
-          "recencyWeight": 1
+          "recencyWeight": 1.2
         },
         {
-          "headline": "Why Economists Expect Biggest CPI Drop in Years While Core Inflation Remains Sticky",
-          "snippet": "Gas prices will be the driver, but economists will be watching other key areas for clues about the underlying inflation trend.",
-          "date": "Jul 13, 2026",
+          "headline": "Maplebear Inc. (CART) Stock Price, News, Quote & History",
+          "url": "https://ca.finance.yahoo.com/quote/CART/",
+          "snippet": "Find the latest Maplebear Inc. (CART) stock quote, history, news and other vital information to help you with your stock trading and investing.",
+          "contentSource": "FETCHED_FULL_TEXT",
+          "charCount": 3000,
+          "date": "1 day ago",
           "scoreContribution": 0,
           "matchedTokens": [],
           "isNegated": false,
           "recencyWeight": 1.2
         },
         {
-          "headline": "Core inflation hit an annual rate of 3.3% in April, as expected, Fed’s preferred gauge shows",
-          "snippet": "The PCE price index for April was expected to show an annual inflation rate of 3.8% for all items and 3.3% for core.",
-          "date": "May 28, 2026",
+          "headline": "Week in Focus – 21-25th September 2026: Highlights include Xi’s visit to the US, Global Flash PMIs, Aussie jobs and the SNB rate decision",
+          "url": "https://www.newsquawk.com/headlines/week-in-focus--21-25th-september-2026-highlights-include-xis-visit-to-the-us-global-flash-pmis-aussie-jobs-and-the-snb-rate-decision",
+          "snippet": "MON: Japanese Market Holiday, Chinese LPR (Sep) TUE: US Richmond Fed (Sep) WED: SARB Announcement, Global Flash PMIs (Sep) THU: Chinese President Xi's...",
+          "contentSource": "FETCHED_FULL_TEXT",
+          "charCount": 3000,
+          "date": "4 days ago",
           "scoreContribution": 0,
           "matchedTokens": [],
+          "isNegated": false,
+          "recencyWeight": 1.2
+        },
+        {
+          "headline": "Eurozone flash Manufacturing PMI remains steady at 52.7 in September",
+          "url": "https://www.fxstreet.com/news/eurozone-flash-manufacturing-pmi-remains-steady-at-527-in-september-202609230804",
+          "snippet": "Preliminary HCOB Manufacturing Purchasing Managers' Index (PMI) in the Eurozone remains steady at 52.7 in September, while it was expected to drop to 52.6.",
+          "contentSource": "SNIPPET_FALLBACK",
+          "charCount": 224,
+          "date": "4 hours ago",
+          "scoreContribution": 0,
+          "matchedTokens": [],
+          "isNegated": false,
+          "recencyWeight": 1.2
+        },
+        {
+          "headline": "Eurozone PMIs beat forecasts as euro slips, fuelling bets on ECB rate rise",
+          "url": "https://www.vtmarkets.com/en-mena/live-updates/eurozone-pmis-beat-forecasts-as-euro-slips-fuelling-bets-on-ecb-rate-rise/",
+          "snippet": "The Eurozone's preliminary HCOB Manufacturing PMI held at 52.7 in September, defying expectations for a dip to 52.6. Wider activity strengthened: the...",
+          "contentSource": "SNIPPET_FALLBACK",
+          "charCount": 227,
+          "date": "2 hours ago",
+          "scoreContribution": -9.6,
+          "matchedTokens": [
+            "beat"
+          ],
           "isNegated": false,
           "recencyWeight": 1.2
         }
       ],
       "tokensDetected": {
         "usBullish": [
-          "rose"
+          "higher",
+          "surpassed",
+          "beat"
         ],
         "usBearish": [],
         "euBullish": [
-          "rebounded"
+          "surged"
         ],
         "euBearish": []
       }
     },
     "technical": {
-      "score": -82.7,
-      "currentPrice": 1.1414,
+      "score": -82.9,
+      "currentPrice": 1.1413,
       "sma20": 1.1571,
       "sma20SlopePips": -10.8,
       "sma50": 1.154,
       "sma200": 1.1626,
-      "rsiWilder": 28.2,
-      "rsiScore": -20.1,
+      "rsiWilder": 28.1,
+      "rsiScore": -20.2,
       "atrPips": 50,
       "swingHigh20": 1.1656,
       "swingLow20": 1.1408,

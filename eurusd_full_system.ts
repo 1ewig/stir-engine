@@ -84,7 +84,10 @@ export interface MacroLayerResult {
 
 export interface HeadlineEvidence {
   headline: string;
+  url: string;
   snippet: string;
+  contentSource: 'FETCHED_FULL_TEXT' | 'SNIPPET_FALLBACK';
+  charCount: number;
   date?: string;
   scoreContribution: number;
   matchedTokens: string[];
@@ -559,32 +562,84 @@ async function runMacroEngine(): Promise<MacroLayerResult> {
 // ============================================================================
 
 async function runSurpriseEngine(): Promise<SurpriseLayerResult> {
-  console.log("Analyzing Layer 2: Advanced NLP Economic Surprise Engine (20% weight)...");
+  console.log("Analyzing Layer 2: Advanced NLP Economic Surprise Engine (Search + Fetch) (20% weight)...");
 
+  // Dynamic news queries without hardcoded year
   const queries = [
-    "US Nonfarm Payrolls NFP jobs report unemployment beat miss consensus 2026",
-    "US CPI Core PCE inflation report beat expected higher lower 2026",
-    "Eurozone flash PMI HCOB manufacturing services survey Eurostat 2026"
+    "US Nonfarm Payrolls NFP jobs report unemployment beat miss consensus",
+    "US CPI Core PCE inflation report rate beat expected",
+    "Eurozone flash PMI HCOB manufacturing services survey"
   ];
 
-  const searchResults: any[] = [];
+  const rawSearchResults: any[] = [];
+  const seenUrls = new Set<string>();
+
   for (const q of queries) {
     try {
-      const res = await client.search.query({
+      // 1. Search with recency filter (7200 mins = 5 days)
+      let res = await client.search.query({
         query: q,
         domain_type: "news",
         location: "US",
-        language: "en"
+        language: "en",
+        recency_minutes: 7200
       });
-      if (res.results) {
-        searchResults.push(...res.results.slice(0, 3));
+
+      // Graceful fallback to 14 days if fresh 5-day results are sparse
+      if (!res.results || res.results.length === 0) {
+        res = await client.search.query({
+          query: q,
+          domain_type: "news",
+          location: "US",
+          language: "en",
+          recency_minutes: 20160 // 14 days
+        });
       }
-    } catch {
-      // Graceful fallback
+
+      if (res.results) {
+        for (const item of res.results) {
+          if (!seenUrls.has(item.url)) {
+            seenUrls.add(item.url);
+            rawSearchResults.push(item);
+          }
+        }
+      }
+    } catch (err: any) {
+      console.warn(`[Surprise Engine] Search error for "${q}":`, err?.message);
     }
   }
 
-  // Expanded token lexicon with negation words
+  // 2. Select top 3-4 most relevant unique URLs for deep Fetch
+  const targetUrls = rawSearchResults
+    .filter(r => !r.url.includes('youtube.com') && !r.url.includes('linkedin.com'))
+    .slice(0, 4)
+    .map(r => r.url);
+
+  const fetchedContentMap = new Map<string, string>();
+
+  if (targetUrls.length > 0) {
+    console.log(`[Surprise Engine] Fetching & extracting clean markdown from ${targetUrls.length} top news URLs...`);
+    try {
+      const fetchResponse = await client.fetch.getContents({
+        urls: targetUrls,
+        format: "markdown",
+        links: false,
+        per_url_timeout_ms: 15000
+      });
+
+      if (fetchResponse?.results) {
+        for (const res of fetchResponse.results) {
+          if (res.text && typeof res.text === 'string' && res.text.length > 100 && !res.text.includes('403 - Operations too frequent')) {
+            fetchedContentMap.set(res.url, res.text);
+          }
+        }
+      }
+    } catch (fetchErr: any) {
+      console.warn("[Surprise Engine] Batch fetch warning, falling back to snippets:", fetchErr?.message);
+    }
+  }
+
+  // 3. Token lexicon with negation words
   const usBullishTokens = ['beat', 'exceeded', 'surpassed', 'higher', 'hotter', 'acceleration', 'jumped', 'rose', 'resilient', 'stronger', 'grew'];
   const usBearishTokens = ['missed', 'cooler', 'slowed', 'slumped', 'below', 'contracted', 'declined', 'weakened', 'disappointed', 'softened'];
   const euBullishTokens = ['rebounded', 'expanded', 'upturn', 'accelerating', 'improved', 'surged'];
@@ -601,9 +656,14 @@ async function runSurpriseEngine(): Promise<SurpriseLayerResult> {
   const evidence: HeadlineEvidence[] = [];
   let aggregateSurpriseScore = 0;
 
-  for (const item of searchResults.slice(0, 8)) {
-    const rawText = `${item.title} ${item.snippet}`.toLowerCase();
-    const words = rawText.split(/\s+/);
+  // 4. Score content (preferring full fetched text, with graceful fallback to snippet)
+  for (const item of rawSearchResults.slice(0, 6)) {
+    const fetchedFullText = fetchedContentMap.get(item.url);
+    const contentSource: 'FETCHED_FULL_TEXT' | 'SNIPPET_FALLBACK' = fetchedFullText ? 'FETCHED_FULL_TEXT' : 'SNIPPET_FALLBACK';
+
+    // Use full text (truncated to first 3000 chars for core body analysis) or snippet
+    const rawContent = (fetchedFullText ? fetchedFullText.slice(0, 3000) : `${item.title} ${item.snippet}`).toLowerCase();
+    const words = rawContent.split(/\s+/);
     let itemScore = 0;
     const matched: string[] = [];
 
@@ -620,42 +680,45 @@ async function runSurpriseEngine(): Promise<SurpriseLayerResult> {
       if (usBullishTokens.includes(word)) {
         matched.push(word);
         detectedTokens.usBullish.push(word);
-        itemScore += negated ? +8 : -10; // US beat = USD Stronger (- score)
+        itemScore += negated ? +6 : -8; // US beat = USD Stronger (- score)
       } else if (usBearishTokens.includes(word)) {
         matched.push(word);
         detectedTokens.usBearish.push(word);
-        itemScore += negated ? -10 : +8; // US miss = EUR Stronger (+ score)
+        itemScore += negated ? -8 : +6; // US miss = EUR Stronger (+ score)
       } else if (euBullishTokens.includes(word)) {
         matched.push(word);
         detectedTokens.euBullish.push(word);
-        itemScore += negated ? -8 : +10; // EU beat = EUR Stronger (+ score)
+        itemScore += negated ? -6 : +8; // EU beat = EUR Stronger (+ score)
       } else if (euBearishTokens.includes(word)) {
         matched.push(word);
         detectedTokens.euBearish.push(word);
-        itemScore += negated ? +10 : -8; // EU miss = USD Stronger (- score)
+        itemScore += negated ? +8 : -6; // EU miss = USD Stronger (- score)
       }
     });
 
     // Recency weighting
-    const isRecent = item.date?.includes('hour') || item.date?.includes('day') || item.date?.includes('2026');
+    const isRecent = item.date?.includes('hour') || item.date?.includes('day');
     const recencyWeight = isRecent ? 1.2 : 1.0;
 
-    // Cap contribution of any single headline to max ±20 points
+    // Cap contribution of any single article to max ±20 points
     const cappedScore = Math.max(-20, Math.min(20, itemScore * recencyWeight));
     aggregateSurpriseScore += cappedScore;
 
     evidence.push({
       headline: item.title,
+      url: item.url,
       snippet: item.snippet,
+      contentSource,
+      charCount: rawContent.length,
       date: item.date,
       scoreContribution: parseFloat(cappedScore.toFixed(1)),
-      matchedTokens: matched,
+      matchedTokens: Array.from(new Set(matched)),
       isNegated: matched.some((_, i) => isNegatedContext(i)),
       recencyWeight
     });
   }
 
-  const finalSurpriseScore = Math.max(-100, Math.min(100, aggregateSurpriseScore || -25));
+  const finalSurpriseScore = Math.max(-100, Math.min(100, aggregateSurpriseScore || -15));
 
   return {
     score: finalSurpriseScore,
