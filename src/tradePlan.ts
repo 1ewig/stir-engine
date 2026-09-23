@@ -1,5 +1,6 @@
 import {
   MacroLayerResult,
+  PositioningLayerResult,
   TechnicalLayerResult,
   TradePlan,
   SystemConfig,
@@ -7,12 +8,15 @@ import {
 } from './types';
 
 // ============================================================================
-// TWO-SIDED TRADE PLAN & POSITION SIZING GENERATOR
+// ASYMMETRIC INSTITUTIONAL SWING TRADE PLAN GENERATOR
+// Resolves Stop Clipping: Stop loss is STRICTLY anchored outside the 5-day structure.
+// Resolves Factor Smearing: Implements hard Confluence Veto Gate against flow squeezes.
 // ============================================================================
 
 export function buildTradePlan(
   finalScore: number,
   macro: MacroLayerResult,
+  positioning: PositioningLayerResult,
   tech: TechnicalLayerResult,
   config: SystemConfig = DEFAULT_CONFIG
 ): TradePlan {
@@ -21,124 +25,270 @@ export function buildTradePlan(
   const dollarRisk = equity * riskPct;
   const pipValue = 10.0; // standard lot 100k pip value in USD
 
-  const rateRegime = macro.rateMetrics.rateDifferentialRegime;
-  const isHighMacroConviction = Math.abs(macro.score) >= 45;
+  const rateRegime = macro.rateMetrics.rateRegime;
+  const posRegime = positioning.metrics.regime;
+  const sizingMult = positioning.metrics.sizingMultiplier;
 
-  // 1. BEARISH REGIME (Composite Score <= -Threshold)
+  // ==========================================================================
+  // CONFLUENCE VETO GATE: PREVENTS TRADING INTO ADVERSE SQUEEZES & LIQUIDATIONS
+  // ==========================================================================
+
+  // VETO 1: Macro is Bearish, but CoT flags Bullish Short Squeeze Divergence
+  if (finalScore <= -config.convictionThreshold && positioning.metrics.regime === 'EXTREME_DIVERGENCE_REVERSAL') {
+    return {
+      regime: 'NEUTRAL_RANGE',
+      action: 'STAND ASIDE (FLOW_DIVERGENCE_SQUEEZE_VETO)',
+      conviction: 'STAND_ASIDE',
+      rateRegimeFlag: rateRegime,
+      positioningRegimeFlag: posRegime,
+      vetoTriggered: true,
+      vetoReason: `Macro is USD-bullish, but institutional hedge funds are actively covering shorts (+${positioning.metrics.netPosition4wChange.toLocaleString()} contracts in 4w) at 52-week positioning lows (${positioning.metrics.cotIndex52w}% CoT Index). High risk of an aggressive short squeeze; trend-following shorts prohibited.`,
+      entryType: 'STAND_ASIDE',
+      entryZone: `Local Support: ${tech.localSwingLow5d} | Resistance Pivot: ${tech.localSwingHigh5d}`,
+      entryMid: tech.currentPrice,
+      stopLossPrice: 0,
+      stopDistancePips: 0,
+      target1Price: 0,
+      target1Pips: 0,
+      target1RR: 'N/A',
+      target2Price: 0,
+      target2Pips: 0,
+      target2RR: 'N/A',
+      dailyAtrPips: tech.atrPips,
+      holdingHorizon: 'Stand aside until short-covering accumulation pressure subsides',
+      sizing: {
+        accountEquity: equity,
+        riskPercentage: 0,
+        dollarRisk: 0,
+        stopDistancePips: 0,
+        pipValuePerLot: pipValue,
+        sizingMultiplier: 1.0,
+        effectiveLots: 0,
+        recommendedLots: 0,
+        miniLots: 0
+      }
+    };
+  }
+
+  // VETO 2: Macro is Bullish, but CoT flags Bearish Long Liquidation Divergence
+  if (finalScore >= config.convictionThreshold && positioning.metrics.regime === 'EXTREME_DIVERGENCE_REVERSAL') {
+    return {
+      regime: 'NEUTRAL_RANGE',
+      action: 'STAND ASIDE (FLOW_DIVERGENCE_LIQUIDATION_VETO)',
+      conviction: 'STAND_ASIDE',
+      rateRegimeFlag: rateRegime,
+      positioningRegimeFlag: posRegime,
+      vetoTriggered: true,
+      vetoReason: `Macro is EUR-bullish, but institutional hedge funds are actively liquidating longs (${positioning.metrics.netPosition4wChange.toLocaleString()} contracts in 4w) at 52-week positioning highs (${positioning.metrics.cotIndex52w}% CoT Index). High risk of a liquidation cascade; trend-following longs prohibited.`,
+      entryType: 'STAND_ASIDE',
+      entryZone: `Local Support: ${tech.localSwingLow5d} | Resistance Pivot: ${tech.localSwingHigh5d}`,
+      entryMid: tech.currentPrice,
+      stopLossPrice: 0,
+      stopDistancePips: 0,
+      target1Price: 0,
+      target1Pips: 0,
+      target1RR: 'N/A',
+      target2Price: 0,
+      target2Pips: 0,
+      target2RR: 'N/A',
+      dailyAtrPips: tech.atrPips,
+      holdingHorizon: 'Stand aside until long-liquidation pressure subsides',
+      sizing: {
+        accountEquity: equity,
+        riskPercentage: 0,
+        dollarRisk: 0,
+        stopDistancePips: 0,
+        pipValuePerLot: pipValue,
+        sizingMultiplier: 1.0,
+        effectiveLots: 0,
+        recommendedLots: 0,
+        miniLots: 0
+      }
+    };
+  }
+
+  // ==========================================================================
+  // 1. BEARISH REGIME (Score <= -Threshold) -> USD Advantage / EUR Weakness
+  // ==========================================================================
   if (finalScore <= -config.convictionThreshold) {
-    // If high macro conviction, allow shallower trend-continuation pullback
-    const pullbackFactor = isHighMacroConviction ? 0.35 : 0.50;
-    const entryLow = parseFloat((tech.currentPrice + (tech.sma20 - tech.currentPrice) * pullbackFactor).toFixed(4));
-    const entryHigh = parseFloat(tech.sma20.toFixed(4));
-    const entryMid = parseFloat(((entryLow + entryHigh) / 2).toFixed(4));
+    const isExhausted = tech.rsiExhaustionState === 'OVERSOLD_EXHAUSTION';
+    const isBreakout = tech.breakoutState === 'BEARISH_BREAKOUT_5D';
 
-    const stopLossPrice = parseFloat((tech.swingHigh20 + (tech.atrPips * 0.0001 * 1.5)).toFixed(4));
-    const rawStopDistance = Math.round((stopLossPrice - entryMid) * 10000);
-    const stopDistancePips = Math.max(15, isFinite(rawStopDistance) && rawStopDistance > 0 ? rawStopDistance : 50);
+    // True structural stop loss is strictly placed OUTSIDE the 5-day swing structure
+    // Never clamped below the 5-day high!
+    const trueStopLossPrice = parseFloat((tech.localSwingHigh5d + (tech.atrPips * 0.0001 * 0.35)).toFixed(4));
+    const distFromCurrent = Math.round((trueStopLossPrice - tech.currentPrice) * 10000);
 
-    const target1Price = parseFloat((entryMid - (stopDistancePips * 0.0001 * 1.5)).toFixed(4));
-    const target1Pips = Math.round((entryMid - target1Price) * 10000);
+    let entryMid: number;
+    let entryZone: string;
+    let entryType: 'LOCAL_BREAKOUT_CONFIRMATION' | 'MICRO_PULLBACK_RETEST' = 'MICRO_PULLBACK_RETEST';
+    let action = 'SELL EUR/USD (Short on Local Invalidation)';
 
-    const target2Price = parseFloat((entryMid - (stopDistancePips * 0.0001 * 2.5)).toFixed(4));
-    const target2Pips = Math.round((entryMid - target2Price) * 10000);
-
-    let recommendedLots = 0;
-    if (stopDistancePips > 0 && isFinite(stopDistancePips)) {
-      const calculatedLots = dollarRisk / (stopDistancePips * pipValue);
-      recommendedLots = isFinite(calculatedLots) ? parseFloat(calculatedLots.toFixed(2)) : 0;
+    // Location Guard: If price is > 80 pips away from the structural pivot,
+    // selling here has adverse location (selling at the bottom of the range).
+    // Demand a Limit Order Retracement closer to resistance so the true stop is 50-65 pips away!
+    if (distFromCurrent > 80 || isExhausted) {
+      // Optimal entry is placed 55-65 pips below the true structural stop
+      const targetRiskPips = Math.min(65, Math.max(50, Math.round(tech.atrPips * 1.1)));
+      entryMid = parseFloat((trueStopLossPrice - (targetRiskPips * 0.0001)).toFixed(4));
+      entryZone = `${parseFloat((entryMid - 0.0015).toFixed(4))} - ${parseFloat((entryMid + 0.0015).toFixed(4))} (Limit entry on pullback closer to 5d resistance)`;
+      action = 'SELL EUR/USD (Limit Order on Retracement to Value)';
+      entryType = 'MICRO_PULLBACK_RETEST';
+    } else if (isBreakout && !isExhausted) {
+      entryMid = tech.currentPrice;
+      entryZone = `${parseFloat((tech.currentPrice - 0.0010).toFixed(4))} - ${parseFloat((tech.currentPrice + 0.0010).toFixed(4))} (Immediate 5-day breakdown execution)`;
+      entryType = 'LOCAL_BREAKOUT_CONFIRMATION';
+      action = 'SELL EUR/USD (Short on 5-Day Breakdown Confirmation)';
+    } else {
+      const microOffset = Math.min(0.0025, tech.atrPips * 0.0001 * 0.4);
+      entryMid = parseFloat((tech.currentPrice + microOffset).toFixed(4));
+      entryZone = `${tech.currentPrice} - ${entryMid} (Micro 2-day pullback into resistance)`;
+      action = 'SELL EUR/USD (Short on Micro Pullback)';
     }
+
+    const stopLossPrice = trueStopLossPrice;
+    const stopDistancePips = Math.round((stopLossPrice - entryMid) * 10000);
+
+    // Multi-Week Asymmetric Targets:
+    // TP1 = 2.0R (~100 to 130 pips) -> de-risk and lock profits
+    // TP2 = 4.0R (~200 to 260 pips) -> capture full multi-week swing expansion
+    const target1Pips = Math.round(stopDistancePips * 2.0);
+    const target1Price = parseFloat((entryMid - (target1Pips * 0.0001)).toFixed(4));
+
+    const target2Pips = Math.round(stopDistancePips * 4.0);
+    const target2Price = parseFloat((entryMid - (target2Pips * 0.0001)).toFixed(4));
+
+    // Position Sizing: Dollar risk remains locked at exactly $500 (1%)
+    const baseLots = parseFloat((dollarRisk / (stopDistancePips * pipValue)).toFixed(2));
+    const effectiveLots = parseFloat((baseLots * sizingMult).toFixed(2));
 
     return {
       regime: 'BEARISH',
-      action: 'SELL EUR/USD (Short on Pullback)',
-      conviction: finalScore <= -55 ? 'STRONG' : 'MODERATE',
+      action,
+      conviction: finalScore <= -50 ? 'STRONG' : 'MODERATE',
       rateRegimeFlag: rateRegime,
-      entryType: isHighMacroConviction ? 'TREND_CONTINUATION_PULLBACK' : 'DEEP_MEAN_REVERSION',
-      entryZone: `${entryLow} - ${entryHigh} (Resistance retest at declining 20 SMA)`,
+      positioningRegimeFlag: posRegime,
+      vetoTriggered: false,
+      entryType,
+      entryZone,
       entryMid,
       stopLossPrice,
       stopDistancePips,
       target1Price,
       target1Pips,
-      target1RR: '1 : 1.5',
+      target1RR: '1 : 2.0',
       target2Price,
       target2Pips,
-      target2RR: '1 : 2.5',
+      target2RR: '1 : 4.0',
       dailyAtrPips: tech.atrPips,
-      holdingHorizon: '10 to 25 trading days',
+      holdingHorizon: '10 to 25 trading days (Multi-Week Swing Leg)',
       sizing: {
         accountEquity: equity,
         riskPercentage: riskPct * 100,
         dollarRisk,
         stopDistancePips,
         pipValuePerLot: pipValue,
-        recommendedLots,
-        miniLots: Math.round(recommendedLots * 10)
+        sizingMultiplier: sizingMult,
+        effectiveLots,
+        recommendedLots: baseLots,
+        miniLots: Math.round(effectiveLots * 10)
       }
     };
   }
 
-  // 2. BULLISH REGIME (Composite Score >= +Threshold)
+  // ==========================================================================
+  // 2. BULLISH REGIME (Score >= +Threshold) -> EUR Advantage / USD Weakness
+  // ==========================================================================
   if (finalScore >= config.convictionThreshold) {
-    const pullbackFactor = isHighMacroConviction ? 0.35 : 0.50;
-    const entryHigh = parseFloat((tech.currentPrice - (tech.currentPrice - tech.sma20) * pullbackFactor).toFixed(4));
-    const entryLow = parseFloat(tech.sma20.toFixed(4));
-    const entryMid = parseFloat(((entryLow + entryHigh) / 2).toFixed(4));
+    const isExhausted = tech.rsiExhaustionState === 'OVERBOUGHT_EXHAUSTION';
+    const isBreakout = tech.breakoutState === 'BULLISH_BREAKOUT_5D';
 
-    const stopLossPrice = parseFloat((tech.swingLow20 - (tech.atrPips * 0.0001 * 1.5)).toFixed(4));
-    const rawStopDistance = Math.round((entryMid - stopLossPrice) * 10000);
-    const stopDistancePips = Math.max(15, isFinite(rawStopDistance) && rawStopDistance > 0 ? rawStopDistance : 50);
+    // True structural stop loss is strictly placed OUTSIDE the 5-day swing structure
+    // Never clamped above the 5-day low!
+    const trueStopLossPrice = parseFloat((tech.localSwingLow5d - (tech.atrPips * 0.0001 * 0.35)).toFixed(4));
+    const distFromCurrent = Math.round((tech.currentPrice - trueStopLossPrice) * 10000);
 
-    const target1Price = parseFloat((entryMid + (stopDistancePips * 0.0001 * 1.5)).toFixed(4));
-    const target1Pips = Math.round((target1Price - entryMid) * 10000);
+    let entryMid: number;
+    let entryZone: string;
+    let entryType: 'LOCAL_BREAKOUT_CONFIRMATION' | 'MICRO_PULLBACK_RETEST' = 'MICRO_PULLBACK_RETEST';
+    let action = 'BUY EUR/USD (Long on Local Invalidation)';
 
-    const target2Price = parseFloat((entryMid + (stopDistancePips * 0.0001 * 2.5)).toFixed(4));
-    const target2Pips = Math.round((target2Price - entryMid) * 10000);
-
-    let recommendedLots = 0;
-    if (stopDistancePips > 0 && isFinite(stopDistancePips)) {
-      const calculatedLots = dollarRisk / (stopDistancePips * pipValue);
-      recommendedLots = isFinite(calculatedLots) ? parseFloat(calculatedLots.toFixed(2)) : 0;
+    if (distFromCurrent > 80 || isExhausted) {
+      const targetRiskPips = Math.min(65, Math.max(50, Math.round(tech.atrPips * 1.1)));
+      entryMid = parseFloat((trueStopLossPrice + (targetRiskPips * 0.0001)).toFixed(4));
+      entryZone = `${parseFloat((entryMid - 0.0015).toFixed(4))} - ${parseFloat((entryMid + 0.0015).toFixed(4))} (Limit entry on pullback closer to 5d support)`;
+      action = 'BUY EUR/USD (Limit Order on Retracement to Value)';
+      entryType = 'MICRO_PULLBACK_RETEST';
+    } else if (isBreakout && !isExhausted) {
+      entryMid = tech.currentPrice;
+      entryZone = `${parseFloat((tech.currentPrice - 0.0010).toFixed(4))} - ${parseFloat((tech.currentPrice + 0.0010).toFixed(4))} (Immediate 5-day breakout execution)`;
+      entryType = 'LOCAL_BREAKOUT_CONFIRMATION';
+      action = 'BUY EUR/USD (Long on 5-Day Breakout Confirmation)';
+    } else {
+      const microOffset = Math.min(0.0025, tech.atrPips * 0.0001 * 0.4);
+      entryMid = parseFloat((tech.currentPrice - microOffset).toFixed(4));
+      entryZone = `${entryMid} - ${tech.currentPrice} (Micro 2-day dip into support)`;
+      action = 'BUY EUR/USD (Long on Micro Dip)';
     }
+
+    const stopLossPrice = trueStopLossPrice;
+    const stopDistancePips = Math.round((entryMid - stopLossPrice) * 10000);
+
+    const target1Pips = Math.round(stopDistancePips * 2.0);
+    const target1Price = parseFloat((entryMid + (target1Pips * 0.0001)).toFixed(4));
+
+    const target2Pips = Math.round(stopDistancePips * 4.0);
+    const target2Price = parseFloat((entryMid + (target2Pips * 0.0001)).toFixed(4));
+
+    const baseLots = parseFloat((dollarRisk / (stopDistancePips * pipValue)).toFixed(2));
+    const effectiveLots = parseFloat((baseLots * sizingMult).toFixed(2));
 
     return {
       regime: 'BULLISH',
-      action: 'BUY EUR/USD (Long on Dip to 20-day SMA)',
-      conviction: finalScore >= 55 ? 'STRONG' : 'MODERATE',
+      action,
+      conviction: finalScore >= 50 ? 'STRONG' : 'MODERATE',
       rateRegimeFlag: rateRegime,
-      entryType: isHighMacroConviction ? 'TREND_CONTINUATION_PULLBACK' : 'DEEP_MEAN_REVERSION',
-      entryZone: `${entryLow} - ${entryHigh} (Support retest at 20 SMA)`,
+      positioningRegimeFlag: posRegime,
+      vetoTriggered: false,
+      entryType,
+      entryZone,
       entryMid,
       stopLossPrice,
       stopDistancePips,
       target1Price,
       target1Pips,
-      target1RR: '1 : 1.5',
+      target1RR: '1 : 2.0',
       target2Price,
       target2Pips,
-      target2RR: '1 : 2.5',
+      target2RR: '1 : 4.0',
       dailyAtrPips: tech.atrPips,
-      holdingHorizon: '10 to 25 trading days',
+      holdingHorizon: '10 to 25 trading days (Multi-Week Swing Leg)',
       sizing: {
         accountEquity: equity,
         riskPercentage: riskPct * 100,
         dollarRisk,
         stopDistancePips,
         pipValuePerLot: pipValue,
-        recommendedLots,
-        miniLots: Math.round(recommendedLots * 10)
+        sizingMultiplier: sizingMult,
+        effectiveLots,
+        recommendedLots: baseLots,
+        miniLots: Math.round(effectiveLots * 10)
       }
     };
   }
 
+  // ==========================================================================
   // 3. NEUTRAL / RANGEBOUND REGIME
+  // ==========================================================================
   return {
     regime: 'NEUTRAL_RANGE',
     action: 'STAND ASIDE / CAPITAL PRESERVATION',
     conviction: 'STAND_ASIDE',
     rateRegimeFlag: rateRegime,
+    positioningRegimeFlag: posRegime,
+    vetoTriggered: false,
     entryType: 'STAND_ASIDE',
-    entryZone: `Range Bounds: [Floor: ${tech.swingLow20} | Ceiling: ${tech.swingHigh20}]`,
+    entryZone: `Local 5d Range: [Floor: ${tech.localSwingLow5d} | Ceiling: ${tech.localSwingHigh5d}]`,
     entryMid: tech.channelMid,
     stopLossPrice: 0,
     stopDistancePips: 0,
@@ -149,13 +299,15 @@ export function buildTradePlan(
     target2Pips: 0,
     target2RR: 'N/A',
     dailyAtrPips: tech.atrPips,
-    holdingHorizon: 'Wait for macro divergence breakout',
+    holdingHorizon: 'Wait for macro yield divergence or structural breakout',
     sizing: {
       accountEquity: equity,
       riskPercentage: 0,
       dollarRisk: 0,
       stopDistancePips: 0,
       pipValuePerLot: pipValue,
+      sizingMultiplier: 1.0,
+      effectiveLots: 0,
       recommendedLots: 0,
       miniLots: 0
     }

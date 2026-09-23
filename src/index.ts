@@ -7,7 +7,7 @@ import {
 } from './types';
 import { dataProvider } from './dataProvider';
 import { runMacroEngine } from './layers/macro';
-import { runSurpriseEngine } from './layers/surprise';
+import { runPositioningEngine } from './layers/positioning';
 import { runTechnicalEngine } from './layers/technical';
 import { buildTradePlan } from './tradePlan';
 
@@ -15,7 +15,7 @@ import { buildTradePlan } from './tradePlan';
 export * from './types';
 export * from './dataProvider';
 export * from './layers/macro';
-export * from './layers/surprise';
+export * from './layers/positioning';
 export * from './layers/technical';
 export * from './tradePlan';
 
@@ -25,12 +25,13 @@ export * from './tradePlan';
 
 export async function executeFullSystem(config: SystemConfig = DEFAULT_CONFIG): Promise<SystemAuditReport> {
   console.log("================================================================================");
-  console.log("      EUR/USD INSTITUTIONAL 3-LAYER TRADING ENGINE (DATA-DRIVEN TS)            ");
+  console.log("   EUR/USD INSTITUTIONAL 3-LAYER SWING TRADING ENGINE (DATA-DRIVEN TS)          ");
+  console.log("   Calibrated for 2-Week to 1-Month Directional Legs (Rates / CoT / Technical) ");
   console.log("================================================================================\n");
 
-  const [macro, surprise, tech] = await Promise.all([
+  const [macro, positioning, tech] = await Promise.all([
     runMacroEngine(),
-    runSurpriseEngine(),
+    runPositioningEngine(),
     runTechnicalEngine()
   ]);
 
@@ -55,60 +56,70 @@ export async function executeFullSystem(config: SystemConfig = DEFAULT_CONFIG): 
 
   // Composite Weighted Score
   const w = config.layerWeights;
-  const composite = (macro.score * w.macro) + (surprise.score * w.surprise) + (tech.score * w.technical);
+  const composite = (macro.score * w.macro) + (positioning.score * w.positioning) + (tech.score * w.technical);
   const finalScore = parseFloat(composite.toFixed(1));
 
-  const plan = buildTradePlan(finalScore, macro, tech, config);
+  const plan = buildTradePlan(finalScore, macro, positioning, tech, config);
 
   // Render Table Breakdown
   console.log("\n--------------------------------------------------------------------------------");
   console.log("                    DYNAMIC MULTI-LAYER SCORING MATRIX                         ");
   console.log("--------------------------------------------------------------------------------");
   console.table({
-    "Layer 1: Macro Rate & Yields (60%)": {
+    "Layer 1: Two-Speed Yield Velocity (50%)": {
       "Score (-100 to +100)": macro.score,
       "Weight": `${w.macro * 100}%`,
       "Weighted Pts": (macro.score * w.macro).toFixed(1),
-      "Continuous Metric": `Fed: ${macro.rateMetrics.liveFedRate.toFixed(2)}% | ECB: ${macro.rateMetrics.liveEcbRate.toFixed(2)}% | Spread: +${macro.rateMetrics.currentRateDifferential.toFixed(2)}%`
+      "Continuous Metric": `2Y: +${macro.yieldSpreads.spread2y.toFixed(2)}% (3d: ${macro.yieldSpreads.spread2yFastDelta3d >= 0 ? '+' : ''}${macro.yieldSpreads.spread2yFastDelta3d.toFixed(2)}% | 10d: ${macro.yieldSpreads.spread2yMedDelta10d >= 0 ? '+' : ''}${macro.yieldSpreads.spread2yMedDelta10d.toFixed(2)}%) | 10Y: +${macro.yieldSpreads.spread10y.toFixed(2)}%`
     },
-    "Layer 2: Surprise NLP (20%)": {
-      "Score (-100 to +100)": surprise.score,
-      "Weight": `${w.surprise * 100}%`,
-      "Weighted Pts": (surprise.score * w.surprise).toFixed(1),
-      "Continuous Metric": `Status: ${surprise.status} | Tokens: [${surprise.tokensDetected.usBullish.slice(0, 3).join(', ')}]`
+    "Layer 2: CFTC CoT Flow Divergence (25%)": {
+      "Score (-100 to +100)": positioning.score,
+      "Weight": `${w.positioning * 100}%`,
+      "Weighted Pts": (positioning.score * w.positioning).toFixed(1),
+      "Continuous Metric": `Index: ${positioning.metrics.cotIndex52w}% (${positioning.metrics.regime}) | 4w Net: ${positioning.metrics.netPosition4wChange >= 0 ? '+' : ''}${positioning.metrics.netPosition4wChange.toLocaleString()} | Sizing: ${positioning.metrics.sizingMultiplier}x`
     },
-    "Layer 3: Wilder Technicals (20%)": {
+    "Layer 3: Local Structure & Technicals (25%)": {
       "Score (-100 to +100)": tech.score,
       "Weight": `${w.technical * 100}%`,
       "Weighted Pts": (tech.score * w.technical).toFixed(1),
-      "Continuous Metric": `Price: ${tech.currentPrice} | 20SMA Slope: ${tech.sma20SlopePips} p/d | Wilder RSI: ${tech.rsiWilder}`
+      "Continuous Metric": `Trend: ${tech.weeklyTrend} | 5d Breakout: ${tech.breakoutState} | RSI: ${tech.rsiWilder} (${tech.rsiExhaustionState})`
     }
   });
 
   console.log(`\n>>> COMPOSITE TRADING SCORE: ${finalScore} / 100 (Negative = USD Advantage, Positive = EUR Advantage) <<<`);
-  console.log(`>>> REGIME & VERDICT:        ${plan.action} [Conviction: ${plan.conviction} | Rate Regime: ${plan.rateRegimeFlag}] <<<\n`);
+  console.log(`>>> REGIME & VERDICT:        ${plan.action} [Conviction: ${plan.conviction} | Rates: ${plan.rateRegimeFlag} | CoT: ${plan.positioningRegimeFlag}] <<<\n`);
 
-  if (plan.regime !== 'NEUTRAL_RANGE') {
+  if (plan.vetoTriggered) {
     console.log("================================================================================");
-    console.log(`                  ACTIONABLE ${plan.regime} SWING EXECUTION PLAN                `);
+    console.log("             INSTITUTIONAL CONFLUENCE VETO ACTIVATED                            ");
+    console.log("================================================================================");
+    console.log(`• Status:            ${plan.action}`);
+    console.log(`• Veto Diagnosis:    ${plan.vetoReason}`);
+    console.log(`• Local Boundaries:  ${plan.entryZone}`);
+    console.log("• Capital Directive: Capital preservation. Stand aside until positioning divergence clears.");
+    console.log("================================================================================\n");
+  } else if (plan.regime !== 'NEUTRAL_RANGE') {
+    console.log("================================================================================");
+    console.log(`            ACTIONABLE ${plan.regime} ASYMMETRIC SWING EXECUTION PLAN            `);
     console.log("================================================================================");
     console.log(`• Action:            ${plan.action}`);
+    console.log(`• Holding Horizon:   ${plan.holdingHorizon}`);
     console.log(`• Entry Strategy:    ${plan.entryType}`);
-    console.log(`• Optimal Entry:     ${plan.entryZone}`);
-    console.log(`• Invalidation (SL): ${plan.stopLossPrice} (${plan.stopDistancePips} pips risk)`);
+    console.log(`• Execution Zone:    ${plan.entryZone}`);
+    console.log(`• Structural Stop:   ${plan.stopLossPrice} (${plan.stopDistancePips} pips risk strictly outside 5d structure)`);
     console.log(`• Take Profit 1:     ${plan.target1Price} (+${plan.target1Pips} pips | R:R ${plan.target1RR})`);
     console.log(`• Take Profit 2:     ${plan.target2Price} (+${plan.target2Pips} pips | R:R ${plan.target2RR})`);
     console.log(`• Daily Volatility:  ${plan.dailyAtrPips} pips / day (Wilder Smoothed ATR)`);
-    console.log(`• Sizing Formula:    Risk $${plan.sizing.dollarRisk.toFixed(2)} (${plan.sizing.riskPercentage}% on $${plan.sizing.accountEquity.toLocaleString()})`);
-    console.log(`• Recommended Size:  ${plan.sizing.recommendedLots} Standard Lots (${plan.sizing.miniLots} Mini Lots)`);
+    console.log(`• Risk Allocation:   $${plan.sizing.dollarRisk.toFixed(2)} (${plan.sizing.riskPercentage}% on $${plan.sizing.accountEquity.toLocaleString()})`);
+    console.log(`• Position Size:     ${plan.sizing.effectiveLots} Standard Lots (${plan.sizing.miniLots} Mini Lots) [Multiplier: ${plan.sizing.sizingMultiplier}x]`);
     console.log("================================================================================\n");
   } else {
     console.log("================================================================================");
     console.log("               NEUTRAL / RANGEBOUND REGIME DETECTED                             ");
     console.log("================================================================================");
     console.log("• Market is currently consolidating without sufficient directional divergence.");
-    console.log(`• Channel Support:   ${tech.swingLow20}`);
-    console.log(`• Channel Resistance:${tech.swingHigh20}`);
+    console.log(`• Support Floor:     ${tech.swingLow20}`);
+    console.log(`• Resistance Ceiling:${tech.swingHigh20}`);
     console.log("• Action:            Stand aside. Capital preservation mode.");
     console.log("================================================================================\n");
   }
@@ -124,7 +135,7 @@ export async function executeFullSystem(config: SystemConfig = DEFAULT_CONFIG): 
     weightsApplied: config.layerWeights,
     layers: {
       macro,
-      surprise,
+      positioning,
       technical: tech
     },
     tradePlan: plan
@@ -138,7 +149,7 @@ export async function executeFullSystem(config: SystemConfig = DEFAULT_CONFIG): 
 }
 
 // Execute directly when invoked via CLI, but not when imported as a module in tests
-const isMain = import.meta.main || (typeof process !== 'undefined' && (
+const isMain = (import.meta as any).main || (typeof process !== 'undefined' && (
   process.argv[1]?.replace(/\\/g, '/').endsWith('src/index.ts') ||
   process.argv[1]?.replace(/\\/g, '/').endsWith('eurusd_full_system.ts')
 ));

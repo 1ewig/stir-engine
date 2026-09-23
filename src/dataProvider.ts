@@ -27,8 +27,8 @@ export class RobustDataProvider {
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
         const res = await fetch(url, {
-          headers: { 'User-Agent': 'Mozilla/5.0' },
-          signal: AbortSignal.timeout(6000)
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+          signal: AbortSignal.timeout(7000)
         });
         if (!res.ok) {
           if (res.status === 429 || res.status >= 500) {
@@ -71,8 +71,8 @@ export class RobustDataProvider {
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
         const res = await fetch(url, {
-          headers: { 'User-Agent': 'Mozilla/5.0' },
-          signal: AbortSignal.timeout(6000)
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+          signal: AbortSignal.timeout(7000)
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const text = await res.text();
@@ -95,6 +95,93 @@ export class RobustDataProvider {
 }
 
 export const dataProvider = new RobustDataProvider();
+
+// ============================================================================
+// SOVEREIGN YIELD & POSITIONING SPECIALIZED DATA ADAPTERS
+// ============================================================================
+
+/**
+ * Fetch US Treasury yield series from FRED (or Yahoo finance fallback)
+ */
+export async function fetchUstYieldSeries(seriesId: 'DGS2' | 'DGS10'): Promise<number[]> {
+  const url = `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${seriesId}`;
+  const res = await dataProvider.fetchTextWithRetry(`FRED_${seriesId}`, url);
+  if (res.text) {
+    const lines = res.text.trim().split('\n');
+    const values: number[] = [];
+    // Read from end to get recent daily observations (skip headers and '.' missing days)
+    for (let i = lines.length - 1; i >= 0 && values.length < 40; i--) {
+      const parts = lines[i].split(',');
+      if (parts.length >= 2) {
+        const val = parseFloat(parts[1].trim());
+        if (!isNaN(val) && val > 0) {
+          values.unshift(val);
+        }
+      }
+    }
+    if (values.length >= 5) return values;
+  }
+
+  // Graceful fallback to Yahoo Finance if FRED is unreachable
+  const yahooSymbol = seriesId === 'DGS10' ? '^TNX' : '^IRX';
+  try {
+    const yUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=3mo&interval=1d`;
+    const { data } = await dataProvider.fetchWithRetry<any>(`Yahoo_${yahooSymbol}`, yUrl);
+    const closes: number[] = (data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || [])
+      .filter((x: any): x is number => typeof x === 'number' && !isNaN(x) && x > 0);
+    if (closes.length >= 5) {
+      return closes.slice(-30);
+    }
+  } catch (err) {
+    console.warn(`[dataProvider] Fallback for ${seriesId} failed:`, err);
+  }
+
+  // Default institutional baseline if all feeds time out
+  return seriesId === 'DGS2' ? Array(30).fill(3.85) : Array(30).fill(4.25);
+}
+
+/**
+ * Fetch Euro Area AAA benchmark government bond yields from official ECB Data Portal API
+ */
+export async function fetchEcbBenchmarkYield(maturity: '2Y' | '10Y'): Promise<number[]> {
+  const url = `https://data-api.ecb.europa.eu/service/data/YC/B.U2.EUR.4F.G_N_A.SV_C_YM.SR_${maturity}?lastNObservations=35&format=jsondata`;
+  const { data } = await dataProvider.fetchWithRetry<any>(`ECB_AAA_Yield_${maturity}`, url);
+
+  try {
+    if (data?.dataSets?.[0]?.series) {
+      const series = Object.values(data.dataSets[0].series)[0] as any;
+      const obsObj = series?.observations || {};
+      const obsKeys = Object.keys(obsObj).sort((a, b) => parseInt(a) - parseInt(b));
+      const values: number[] = [];
+      for (const k of obsKeys) {
+        const val = parseFloat(String(obsObj[k][0]));
+        if (!isNaN(val)) {
+          values.push(val);
+        }
+      }
+      if (values.length >= 5) {
+        return values;
+      }
+    }
+  } catch (e) {
+    console.warn(`[dataProvider] Error parsing ECB yield ${maturity}:`, e);
+  }
+
+  // Safe fallback if ECB API is offline
+  return maturity === '2Y' ? Array(30).fill(2.10) : Array(30).fill(2.35);
+}
+
+/**
+ * Fetch weekly Commitments of Traders (COT) Euro FX speculative futures positioning from CFTC
+ */
+export async function fetchCftcEuroPositioning(): Promise<any[]> {
+  const url = 'https://publicreporting.cftc.gov/resource/6dca-aqww.json?cftc_contract_market_code=099741&$limit=52&$order=report_date_as_yyyy_mm_dd%20DESC';
+  const { data } = await dataProvider.fetchWithRetry<any[]>('CFTC_COT_Euro_FX', url);
+  if (Array.isArray(data) && data.length > 0) {
+    return data;
+  }
+  return [];
+}
 
 // ============================================================================
 // STATISTICAL & MATHEMATICAL HELPERS (CONTINUOUS NORMALIZATION)

@@ -1,16 +1,18 @@
 // ============================================================================
-// SYSTEM CONFIGURATION & INTERFACES FOR EUR/USD SWING TRADING ENGINE
+// SYSTEM CONFIGURATION & INTERFACES FOR EUR/USD INSTITUTIONAL SWING TRADING ENGINE
+// Specially calibrated for multi-week to monthly legs (10 to 25 trading days)
+// Asymmetric Risk Geometry: 40-65 pip stops, 1:2.5 to 1:5+ R:R payoffs
 // ============================================================================
 
 export interface SystemConfig {
   accountEquity: number;        // e.g. 50000 USD
-  maxRiskPerTradePct: number;   // e.g. 1.0% = 0.01
+  maxRiskPerTradePct: number;   // e.g. 1.0% = 0.01 ($500 risk)
   layerWeights: {
-    macro: number;              // default 0.60
-    surprise: number;           // default 0.20
-    technical: number;          // default 0.20
+    macro: number;              // default 0.50 (Two-speed sovereign yield spreads & macro momentum)
+    positioning: number;        // default 0.25 (CFTC CoT divergence & institutional flow)
+    technical: number;          // default 0.25 (Weekly trend & local 5-day market structure)
   };
-  convictionThreshold: number;  // score threshold for trade activation (30.0)
+  convictionThreshold: number;  // score threshold for trade activation (25.0)
   cacheTtlMs: number;           // in-memory API cache TTL (5 mins)
 }
 
@@ -18,11 +20,11 @@ export const DEFAULT_CONFIG: SystemConfig = {
   accountEquity: 50000,
   maxRiskPerTradePct: 0.01,     // 1.0% risk per trade ($500 on $50k)
   layerWeights: {
-    macro: 0.60,
-    surprise: 0.20,
-    technical: 0.20
+    macro: 0.50,
+    positioning: 0.25,
+    technical: 0.25
   },
-  convictionThreshold: 30.0,
+  convictionThreshold: 25.0,
   cacheTtlMs: 5 * 60 * 1000     // 5 minutes
 };
 
@@ -44,14 +46,6 @@ export interface MarketHistory {
   percentile30d: number;
 }
 
-export interface SeriesAnalysis {
-  mean: number;
-  stdDev: number;
-  zScore: number;
-  percentile: number;
-  change30dPct: number;
-}
-
 export interface LiveRates {
   fedRate: number;
   fedSource: string;
@@ -62,67 +56,95 @@ export interface LiveRates {
   rateDifferential30dChange: number;
 }
 
+export interface YieldSpreadMetrics {
+  us2y: number;
+  de2y: number;
+  spread2y: number;             // US 2Y - DE 2Y
+  spread2yFastDelta3d: number;  // Fast 3-day spread velocity (impulse detection)
+  spread2yMedDelta10d: number;  // Medium 10-day spread velocity (trend confirmation)
+  spread2yZScore: number;       // 30d z-score of spread
+  us10y: number;
+  de10y: number;
+  spread10y: number;            // US 10Y - DE 10Y
+  spread10yDelta10d: number;    // 10-day 10Y spread momentum
+}
+
 export interface MacroFactor {
   name: string;
   weight: number;
   rawReading: string;
-  normalizedScore: number;     // continuous -1.0 (Max USD) to +1.0 (Max EUR)
+  normalizedScore: number;      // continuous -1.0 (Max USD) to +1.0 (Max EUR)
   weightedScore: number;
   rationale: string;
 }
 
 export interface MacroLayerResult {
-  score: number;               // -100 to +100
+  score: number;                // -100 to +100
   bias: 'STRONG_USD' | 'STRONG_EUR' | 'NEUTRAL';
   factors: MacroFactor[];
+  yieldSpreads: YieldSpreadMetrics;
   rateMetrics: {
     liveFedRate: number;
     liveFedSource: string;
     liveEcbRate: number;
-    currentRateDifferential: number;     // Fed - ECB
-    rateDifferential30dChange: number;   // Compression (-) vs Widening (+)
-    rateDifferentialRegime: 'WIDENING_USD_ADVANTAGE' | 'COMPRESSING_EUR_RELIEF' | 'STABLE_SPREAD';
+    currentRateDifferential: number;
+    rateDifferential30dChange: number;
+    rateRegime: 'WIDENING_USD_ADVANTAGE' | 'COMPRESSING_EUR_RELIEF' | 'STABLE_SPREAD';
   };
   rawMetrics: {
+    us2y: number;
+    de2y: number;
     us10y: number;
+    de10y: number;
     brent: number;
-    dxyChange: number;
+    vix: number;
   };
 }
 
-export interface HeadlineEvidence {
-  headline: string;
-  url: string;
-  snippet: string;
-  contentSource: 'FETCHED_FULL_TEXT' | 'SNIPPET_FALLBACK';
-  charCount: number;
-  date?: string;
-  scoreContribution: number;
-  matchedTokens: string[];
-  isNegated: boolean;
-  recencyWeight: number;
+export interface CotPositioningMetrics {
+  reportDate: string;
+  nonCommercialLong: number;
+  nonCommercialShort: number;
+  netPosition: number;
+  netPosition4wChange: number;
+  openInterest: number;
+  netPctOfOpenInterest: number;
+  cotIndex52w: number;          // 0 to 100 percentile over 52 weeks
+  minNet52w: number;
+  maxNet52w: number;
+  isCrowdedLong: boolean;       // cotIndex52w > 80
+  isCrowdedShort: boolean;      // cotIndex52w < 20
+  isFlowDecelerating: boolean;  // 4w change diverging from prevailing trend
+  sizingMultiplier: number;     // 1.0 (normal) or 0.70 (crowded trend haircut)
+  regime: 'EXTREME_DIVERGENCE_REVERSAL' | 'BULLISH_FLOW_ACCELERATION' | 'BEARISH_FLOW_ACCELERATION' | 'TREND_CONTINUATION_CROWDED' | 'NEUTRAL';
 }
 
-export interface SurpriseLayerResult {
-  score: number;               // -100 to +100
+export interface PositioningLayerResult {
+  score: number;                // -100 to +100
   status: string;
-  evidence: HeadlineEvidence[];
-  tokensDetected: { usBullish: string[]; usBearish: string[]; euBullish: string[]; euBearish: string[] };
+  metrics: CotPositioningMetrics;
+  rationale: string;
 }
 
 export interface TechnicalLayerResult {
-  score: number;               // -100 to +100
+  score: number;                // -100 to +100
   currentPrice: number;
+  weeklyTrend: 'WEEKLY_BULLISH' | 'WEEKLY_BEARISH' | 'WEEKLY_NEUTRAL';
+  sma20w: number;
   sma20: number;
   sma20SlopePips: number;
   sma50: number;
   sma200: number;
   rsiWilder: number;
   rsiScore: number;
+  rsiExhaustionState: 'NORMAL' | 'OVERSOLD_EXHAUSTION' | 'OVERBOUGHT_EXHAUSTION';
   atrPips: number;
-  swingHigh20: number;
-  swingLow20: number;
+  localSwingHigh5d: number;     // Local 5-day high (tight invalidation anchor)
+  localSwingLow5d: number;      // Local 5-day low (tight invalidation anchor)
+  swingHigh20: number;          // 20-day high (major structure)
+  swingLow20: number;           // 20-day low (major structure)
   channelMid: number;
+  breakoutState: 'BULLISH_BREAKOUT_5D' | 'BEARISH_BREAKOUT_5D' | 'INSIDE_RANGE';
 }
 
 export interface PositionSizing {
@@ -130,9 +152,11 @@ export interface PositionSizing {
   riskPercentage: number;
   dollarRisk: number;
   stopDistancePips: number;
-  pipValuePerLot: number;      // $10 for EUR/USD standard lot
-  recommendedLots: number;     // Standard lots (100k)
-  miniLots: number;            // Mini lots (10k)
+  pipValuePerLot: number;       // $10 for EUR/USD standard lot
+  sizingMultiplier: number;     // 0.70x haircut if crowded
+  effectiveLots: number;        // Recommended lots after sizing multiplier
+  recommendedLots: number;      // Base standard lots
+  miniLots: number;             // Mini lots
 }
 
 export interface TradePlan {
@@ -140,16 +164,19 @@ export interface TradePlan {
   action: string;
   conviction: 'STRONG' | 'MODERATE' | 'STAND_ASIDE';
   rateRegimeFlag: string;
-  entryType: 'TREND_CONTINUATION_PULLBACK' | 'DEEP_MEAN_REVERSION' | 'STAND_ASIDE';
+  positioningRegimeFlag: string;
+  vetoTriggered?: boolean;
+  vetoReason?: string;
+  entryType: 'LOCAL_BREAKOUT_CONFIRMATION' | 'MICRO_PULLBACK_RETEST' | 'STAND_ASIDE';
   entryZone: string;
   entryMid: number;
   stopLossPrice: number;
-  stopDistancePips: number;
+  stopDistancePips: number;      // True structural distance (outside 5-day range)
   target1Price: number;
-  target1Pips: number;
+  target1Pips: number;           // ~120-160 pips (1:2.5R)
   target1RR: string;
   target2Price: number;
-  target2Pips: number;
+  target2Pips: number;           // ~250-350 pips (1:5R to 1:6R)
   target2RR: string;
   dailyAtrPips: number;
   holdingHorizon: string;
@@ -163,10 +190,10 @@ export interface SystemAuditReport {
   sourceHealth: DataSourceHealth[];
   compositeScore: number;
   verdict: string;
-  weightsApplied: { macro: number; surprise: number; technical: number };
+  weightsApplied: { macro: number; positioning: number; technical: number };
   layers: {
     macro?: MacroLayerResult;
-    surprise?: SurpriseLayerResult;
+    positioning?: PositioningLayerResult;
     technical?: TechnicalLayerResult;
   };
   tradePlan?: TradePlan;

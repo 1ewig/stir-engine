@@ -3,17 +3,20 @@ import {
   MacroFactor,
   MacroLayerResult,
   MarketHistory,
+  YieldSpreadMetrics,
   DEFAULT_CONFIG
 } from '../types';
 import {
   dataProvider,
+  fetchUstYieldSeries,
+  fetchEcbBenchmarkYield,
   calcZScore,
   calcPercentile,
   tanhNormalize
 } from '../dataProvider';
 
 // ============================================================================
-// DYNAMIC CENTRAL BANK POLICY RATE RETRIEVAL (FED & ECB)
+// CENTRAL BANK POLICY RATE RETRIEVAL (FED & ECB) - CONTEXTUAL MONITORING
 // ============================================================================
 
 export async function fetchLivePolicyRates(): Promise<LiveRates> {
@@ -21,9 +24,9 @@ export async function fetchLivePolicyRates(): Promise<LiveRates> {
 
   let fedRate = 3.875;
   let fedRate30dAgo = 3.875;
-  let fedSource = "Static Fallback (Midpoint 3.875%)";
+  let fedSource = "Static Fallback (3.875%)";
 
-  // 1. Primary Fed Source: Federal Reserve Bank of New York (EFFR 30-day series & Target Range)
+  // 1. Primary Fed Source: NY Fed EFFR
   const nyFedRes = await dataProvider.fetchWithRetry<any>(
     'NY_Fed_Reference_Rates',
     'https://markets.newyorkfed.org/api/rates/unsecured/effr/last/30.json'
@@ -38,7 +41,7 @@ export async function fetchLivePolicyRates(): Promise<LiveRates> {
       const targetTo = latest.targetRateTo;
       fedSource = (targetFrom !== undefined && targetTo !== undefined)
         ? `NY Fed (EFFR: ${fedRate.toFixed(2)}%, Target: [${targetFrom.toFixed(2)}% - ${targetTo.toFixed(2)}%])`
-        : `NY Fed (Effective Federal Funds Rate: ${fedRate.toFixed(2)}%)`;
+        : `NY Fed (EFFR: ${fedRate.toFixed(2)}%)`;
     }
 
     const oldest = effrRates[effrRates.length - 1];
@@ -80,7 +83,7 @@ export async function fetchLivePolicyRates(): Promise<LiveRates> {
     }
   }
 
-  // 3. Fetch ECB Deposit Facility Rate (DFR) & 30-day History
+  // 3. Fetch ECB Deposit Facility Rate (DFR)
   let ecbRate = 2.50;
   let ecbRate30dAgo = 2.50;
 
@@ -119,7 +122,8 @@ export async function fetchLivePolicyRates(): Promise<LiveRates> {
 }
 
 // ============================================================================
-// LAYER 1: DATA-DRIVEN DYNAMIC MACRO ENGINE (60% Weight)
+// LAYER 1: TWO-SPEED SOVEREIGN YIELD ACCELERATION ENGINE (50% Weight)
+// Eliminates 20-day lag: Fast 3-day impulse + Medium 10-day swing momentum
 // ============================================================================
 
 export async function fetchHistoricalAsset(name: string, symbol: string): Promise<MarketHistory | null> {
@@ -146,86 +150,147 @@ export async function fetchHistoricalAsset(name: string, symbol: string): Promis
 }
 
 export async function runMacroEngine(): Promise<MacroLayerResult> {
-  console.log("Analyzing Layer 1: Macro Rate-Differential & Yield Engine (60% weight)...");
+  console.log("Analyzing Layer 1: Two-Speed Yield Spread Acceleration Engine (3d Fast / 10d Medium) (50% weight)...");
 
-  const [liveRates, us10y, brent, dxy, vix] = await Promise.all([
+  const [liveRates, us2ySeries, de2ySeries, us10ySeries, de10ySeries, brent, vix] = await Promise.all([
     fetchLivePolicyRates(),
-    fetchHistoricalAsset('US10Y_Yield', '^TNX'),
+    fetchUstYieldSeries('DGS2'),
+    fetchEcbBenchmarkYield('2Y'),
+    fetchUstYieldSeries('DGS10'),
+    fetchEcbBenchmarkYield('10Y'),
     fetchHistoricalAsset('Brent_Crude', 'BZ=F'),
-    fetchHistoricalAsset('US_Dollar_Index', 'DX-Y.NYB'),
     fetchHistoricalAsset('VIX_Index', '^VIX')
   ]);
 
-  // Rate Differential Regime Calculation
-  const diff = liveRates.rateDifferential; // e.g. 3.88% - 2.50% = +1.38%
+  // Current Yield Readings
+  const us2yCurrent = us2ySeries[us2ySeries.length - 1] ?? 3.85;
+  const de2yCurrent = de2ySeries[de2ySeries.length - 1] ?? 2.10;
+
+  // 1. Two-Speed 2Y Spread Velocity:
+  // Fast (3-day delta) captures immediate post-catalyst repricing (CPI/NFP/FOMC)
+  // Medium (10-day delta) confirms 2-week swing continuation
+  const us2yPast3 = us2ySeries[Math.max(0, us2ySeries.length - 4)] ?? us2yCurrent;
+  const de2yPast3 = de2ySeries[Math.max(0, de2ySeries.length - 4)] ?? de2yCurrent;
+  const us2yPast10 = us2ySeries[Math.max(0, us2ySeries.length - 11)] ?? us2yCurrent;
+  const de2yPast10 = de2ySeries[Math.max(0, de2ySeries.length - 11)] ?? de2yCurrent;
+
+  const spread2yCurrent = parseFloat((us2yCurrent - de2yCurrent).toFixed(3));
+  const spread2yPast3 = parseFloat((us2yPast3 - de2yPast3).toFixed(3));
+  const spread2yPast10 = parseFloat((us2yPast10 - de2yPast10).toFixed(3));
+
+  const spread2yFastDelta3d = parseFloat((spread2yCurrent - spread2yPast3).toFixed(3));
+  const spread2yMedDelta10d = parseFloat((spread2yCurrent - spread2yPast10).toFixed(3));
+
+  // Compute 2Y spread series over overlapping dates for 30d z-score
+  const minLen2y = Math.min(us2ySeries.length, de2ySeries.length);
+  const spread2yHistory: number[] = [];
+  for (let i = 0; i < minLen2y; i++) {
+    const uIdx = us2ySeries.length - minLen2y + i;
+    const dIdx = de2ySeries.length - minLen2y + i;
+    spread2yHistory.push(us2ySeries[uIdx] - de2ySeries[dIdx]);
+  }
+  const spread2yZScore = calcZScore(spread2yCurrent, spread2yHistory);
+
+  // 2. 10-Year Sovereign Yield Spread (10-day delta)
+  const us10yCurrent = us10ySeries[us10ySeries.length - 1] ?? 4.25;
+  const de10yCurrent = de10ySeries[de10ySeries.length - 1] ?? 2.35;
+  const us10yPast10 = us10ySeries[Math.max(0, us10ySeries.length - 11)] ?? us10yCurrent;
+  const de10yPast10 = de10ySeries[Math.max(0, de10ySeries.length - 11)] ?? de10yCurrent;
+
+  const spread10yCurrent = parseFloat((us10yCurrent - de10yCurrent).toFixed(3));
+  const spread10yPast10 = parseFloat((us10yPast10 - de10yPast10).toFixed(3));
+  const spread10yDelta10d = parseFloat((spread10yCurrent - spread10yPast10).toFixed(3));
+
+  const yieldSpreads: YieldSpreadMetrics = {
+    us2y: us2yCurrent,
+    de2y: de2yCurrent,
+    spread2y: spread2yCurrent,
+    spread2yFastDelta3d,
+    spread2yMedDelta10d,
+    spread2yZScore,
+    us10y: us10yCurrent,
+    de10y: de10yCurrent,
+    spread10y: spread10yCurrent,
+    spread10yDelta10d
+  };
+
+  // Continuous Scoring Logic:
+  // Negative = USD Advantage, Positive = EUR Advantage
+
+  // 1. Fast 2Y Yield Spread Impulse (3-day delta) (30% weight)
+  // An 8 bps (0.08%) move in 3 days is a fast institutional impulse
+  const fastScore = -tanhNormalize(spread2yFastDelta3d / 0.08);
+
+  // 2. Medium 2Y Yield Spread Momentum (10-day delta) (30% weight)
+  // A 15 bps (0.15%) move over 10 trading days confirms swing trend
+  const medScore = -tanhNormalize(spread2yMedDelta10d / 0.15);
+
+  // 3. 10-Year Spread Divergence (10-day delta) (20% weight)
+  const score10y = -tanhNormalize(spread10yDelta10d / 0.12);
+
+  // 4. European Energy Terms-of-Trade (Brent Crude 15d change / z-score) (10% weight)
+  const brentZ = brent?.zScore30d ?? 0.0;
+  const brentScore = -tanhNormalize(brentZ, 0.75);
+
+  // 5. Global Risk Regime (VIX Level & 5d Velocity) (10% weight)
+  const vixCurrent = vix?.current ?? 15.0;
+  const vixCloses = vix?.closes || [];
+  const vixPast5 = vixCloses.length >= 6 ? vixCloses[vixCloses.length - 6] : vixCurrent;
+  const vix5dChange = vixCurrent - vixPast5;
+  // High VIX or spiking VIX (+3 pts in 5d) = USD safe haven demand (-)
+  const vixVelocityScore = vix5dChange > 2.5 ? -0.4 : vix5dChange < -2.5 ? +0.3 : 0.0;
+  const vixLevelScore = vixCurrent >= 20 ? -tanhNormalize((vixCurrent - 20) / 8) : +tanhNormalize((20 - vixCurrent) / 10);
+  const vixScore = parseFloat(((vixLevelScore * 0.6) + (vixVelocityScore * 0.4)).toFixed(3));
+
+  // Determine Rate Regime flag for reporting
   let rateRegime: 'WIDENING_USD_ADVANTAGE' | 'COMPRESSING_EUR_RELIEF' | 'STABLE_SPREAD' = 'STABLE_SPREAD';
-  if (liveRates.rateDifferential30dChange > 0.10) {
+  if (spread2yMedDelta10d > 0.06) {
     rateRegime = 'WIDENING_USD_ADVANTAGE';
-  } else if (liveRates.rateDifferential30dChange < -0.10) {
+  } else if (spread2yMedDelta10d < -0.06) {
     rateRegime = 'COMPRESSING_EUR_RELIEF';
   }
-
-  // Continuous Score Components:
-  // 1. Policy Rate Spread: Baseline spread centered at +1.25%. Higher = USD Advantage (-)
-  const rateSpreadScore = -tanhNormalize((diff - 1.25) / 1.0);
-
-  // 2. Expected Rate Path Divergence (US 10Y Yield Momentum z-score):
-  const yieldZ = us10y?.zScore30d ?? 1.2;
-  const yieldPathScore = -tanhNormalize(yieldZ, 0.75);
-
-  // 3. European Energy Terms-of-Trade (Brent):
-  const brentZ = brent?.zScore30d ?? 0.5;
-  const brentScore = -tanhNormalize(brentZ, 0.7);
-
-  // 4. US Dollar Index (DXY) 30d Trend:
-  const dxyZ = dxy?.zScore30d ?? 1.0;
-  const dxyScore = -tanhNormalize(dxyZ, 0.7);
-
-  // 5. Volatility & Safe-Haven Interaction (VIX):
-  const vixCurrent = vix?.current ?? 14.5;
-  const vixScore = vixCurrent > 22 ? -0.5 : vixCurrent < 16 ? +0.3 : 0.0;
 
   // Layer 1 Factors (Weights sum to 100)
   const factors: MacroFactor[] = [
     {
-      name: "Central Bank Rate Differential",
-      weight: 35,
-      rawReading: `Fed (${liveRates.fedRate.toFixed(2)}% via ${liveRates.fedSource}) - ECB (${liveRates.ecbRate.toFixed(2)}%) = +${diff.toFixed(2)}%`,
-      normalizedScore: parseFloat(rateSpreadScore.toFixed(3)),
+      name: "Fast 2Y Yield Spread Impulse (3-Day Delta)",
+      weight: 30,
+      rawReading: `Spread: +${spread2yCurrent.toFixed(2)}% | 3d Delta: ${spread2yFastDelta3d >= 0 ? '+' : ''}${spread2yFastDelta3d.toFixed(2)}%`,
+      normalizedScore: parseFloat(fastScore.toFixed(3)),
       weightedScore: 0,
-      rationale: "Live rate spread carry advantage and 30-day differential regime."
+      rationale: "Captures immediate front-end rate repricing within 72 hours of catalysts."
     },
     {
-      name: "Expected Yield Path Divergence (10Y Yield)",
-      weight: 25,
-      rawReading: `${us10y?.current?.toFixed(3) || '4.96'}% (30d z-score: ${yieldZ.toFixed(2)})`,
-      normalizedScore: parseFloat(yieldPathScore.toFixed(3)),
+      name: "Medium 2Y Yield Spread Momentum (10-Day Delta)",
+      weight: 30,
+      rawReading: `10d Delta: ${spread2yMedDelta10d >= 0 ? '+' : ''}${spread2yMedDelta10d.toFixed(2)}% (z-score: ${spread2yZScore.toFixed(2)})`,
+      normalizedScore: parseFloat(medScore.toFixed(3)),
       weightedScore: 0,
-      rationale: "Long-term market-implied rate path and sovereign bond spread."
+      rationale: "Confirms multi-week monetary policy divergence and swing momentum."
     },
     {
-      name: "European Energy Terms-of-Trade (Brent)",
-      weight: 18,
-      rawReading: `$${brent?.current?.toFixed(2) || '96.00'} (30d z-score: ${brentZ.toFixed(2)})`,
+      name: "10Y Sovereign Yield Spread Momentum (10-Day Delta)",
+      weight: 20,
+      rawReading: `Spread: +${spread10yCurrent.toFixed(2)}% | 10d Delta: ${spread10yDelta10d >= 0 ? '+' : ''}${spread10yDelta10d.toFixed(2)}%`,
+      normalizedScore: parseFloat(score10y.toFixed(3)),
+      weightedScore: 0,
+      rationale: "Long-term economic growth divergence and sovereign bond term premium."
+    },
+    {
+      name: "European Energy Terms-of-Trade (Brent Crude)",
+      weight: 10,
+      rawReading: `$${brent?.current?.toFixed(2) || '95.00'} (30d z-score: ${brentZ.toFixed(2)})`,
       normalizedScore: parseFloat(brentScore.toFixed(3)),
       weightedScore: 0,
-      rationale: "Oil price pressure on Eurozone trade balance."
+      rationale: "Oil price burden on Eurozone trade balance vs US energy self-sufficiency."
     },
     {
-      name: "US Dollar Index (DXY) 30d Momentum",
-      weight: 12,
-      rawReading: `${dxy?.current?.toFixed(2) || '100.85'} (${(dxy?.changePct ?? 0) >= 0 ? '+' : ''}${dxy?.changePct ?? 1.86}% 30d)`,
-      normalizedScore: parseFloat(dxyScore.toFixed(3)),
-      weightedScore: 0,
-      rationale: "Broad trade-weighted USD strength."
-    },
-    {
-      name: "Volatility & Liquidity Regime (VIX)",
+      name: "Global Risk Sentiment & VIX Velocity",
       weight: 10,
-      rawReading: `VIX: ${vixCurrent.toFixed(2)} (Regime: ${vixCurrent > 22 ? 'Risk-Off' : 'Risk-On'})`,
-      normalizedScore: parseFloat(vixScore.toFixed(3)),
+      rawReading: `VIX: ${vixCurrent.toFixed(2)} (${vix5dChange >= 0 ? '+' : ''}${vix5dChange.toFixed(1)} 5d)`,
+      normalizedScore: vixScore,
       weightedScore: 0,
-      rationale: "Global risk appetite vs dollar liquidity hoarding."
+      rationale: "Global risk-off dollar liquidity hoarding vs risk-on pro-cyclical euro flows."
     }
   ];
 
@@ -241,18 +306,22 @@ export async function runMacroEngine(): Promise<MacroLayerResult> {
     score: finalMacroScore,
     bias: finalMacroScore <= -DEFAULT_CONFIG.convictionThreshold ? 'STRONG_USD' : finalMacroScore >= DEFAULT_CONFIG.convictionThreshold ? 'STRONG_EUR' : 'NEUTRAL',
     factors,
+    yieldSpreads,
     rateMetrics: {
       liveFedRate: liveRates.fedRate,
       liveFedSource: liveRates.fedSource,
       liveEcbRate: liveRates.ecbRate,
       currentRateDifferential: liveRates.rateDifferential,
       rateDifferential30dChange: liveRates.rateDifferential30dChange,
-      rateDifferentialRegime: rateRegime
+      rateRegime
     },
     rawMetrics: {
-      us10y: us10y?.current ?? 4.968,
-      brent: brent?.current ?? 95.82,
-      dxyChange: dxy?.changePct ?? 1.86
+      us2y: us2yCurrent,
+      de2y: de2yCurrent,
+      us10y: us10yCurrent,
+      de10y: de10yCurrent,
+      brent: brent?.current ?? 95.0,
+      vix: vixCurrent
     }
   };
 }

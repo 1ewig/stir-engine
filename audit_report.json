@@ -1,259 +1,225 @@
 {
-  "timestamp": "2026-09-23T12:34:57.524Z",
+  "timestamp": "2026-09-23T17:21:13.340Z",
   "config": {
     "accountEquity": 50000,
     "maxRiskPerTradePct": 0.01,
     "layerWeights": {
-      "macro": 0.6,
-      "surprise": 0.2,
-      "technical": 0.2
+      "macro": 0.5,
+      "positioning": 0.25,
+      "technical": 0.25
     },
-    "convictionThreshold": 30,
+    "convictionThreshold": 25,
     "cacheTtlMs": 300000
   },
   "status": "SUCCESS",
   "sourceHealth": [
     {
-      "source": "US10Y_Yield",
+      "source": "ECB_AAA_Yield_10Y",
       "status": "OK",
-      "latencyMs": 892
+      "latencyMs": 653
     },
     {
-      "source": "US_Dollar_Index",
+      "source": "ECB_AAA_Yield_2Y",
       "status": "OK",
-      "latencyMs": 894
-    },
-    {
-      "source": "Yahoo_EURUSD_Chart",
-      "status": "OK",
-      "latencyMs": 892
-    },
-    {
-      "source": "Brent_Crude",
-      "status": "OK",
-      "latencyMs": 902
-    },
-    {
-      "source": "VIX_Index",
-      "status": "OK",
-      "latencyMs": 903
+      "latencyMs": 654
     },
     {
       "source": "NY_Fed_Reference_Rates",
       "status": "OK",
-      "latencyMs": 1167
+      "latencyMs": 810
+    },
+    {
+      "source": "Brent_Crude",
+      "status": "OK",
+      "latencyMs": 967
+    },
+    {
+      "source": "VIX_Index",
+      "status": "OK",
+      "latencyMs": 976
+    },
+    {
+      "source": "Yahoo_EURUSD_Chart",
+      "status": "OK",
+      "latencyMs": 994
     },
     {
       "source": "ECB_Deposit_Rate",
       "status": "OK",
-      "latencyMs": 612
+      "latencyMs": 214
+    },
+    {
+      "source": "CFTC_COT_Euro_FX",
+      "status": "OK",
+      "latencyMs": 1374
+    },
+    {
+      "source": "FRED_DGS2",
+      "status": "OK",
+      "latencyMs": 2306
+    },
+    {
+      "source": "FRED_DGS10",
+      "status": "OK",
+      "latencyMs": 2422
     }
   ],
-  "compositeScore": -44.2,
-  "verdict": "SELL EUR/USD (Short on Pullback)",
+  "compositeScore": -26.2,
+  "verdict": "STAND ASIDE (FLOW_DIVERGENCE_SQUEEZE_VETO)",
   "weightsApplied": {
-    "macro": 0.6,
-    "surprise": 0.2,
-    "technical": 0.2
+    "macro": 0.5,
+    "positioning": 0.25,
+    "technical": 0.25
   },
   "layers": {
     "macro": {
-      "score": -33.1,
+      "score": -49.2,
       "bias": "STRONG_USD",
       "factors": [
         {
-          "name": "Central Bank Rate Differential",
-          "weight": 35,
-          "rawReading": "Fed (3.88% via NY Fed (EFFR: 3.88%, Target: [3.75% - 4.00%])) - ECB (2.50%) = +1.38%",
-          "normalizedScore": -0.129,
-          "weightedScore": -4.52,
-          "rationale": "Live rate spread carry advantage and 30-day differential regime."
+          "name": "Fast 2Y Yield Spread Impulse (3-Day Delta)",
+          "weight": 30,
+          "rawReading": "Spread: +1.62% | 3d Delta: +0.03%",
+          "normalizedScore": -0.38,
+          "weightedScore": -11.4,
+          "rationale": "Captures immediate front-end rate repricing within 72 hours of catalysts."
         },
         {
-          "name": "Expected Yield Path Divergence (10Y Yield)",
-          "weight": 25,
-          "rawReading": "4.963% (30d z-score: 1.41)",
-          "normalizedScore": -0.784,
-          "weightedScore": -19.6,
-          "rationale": "Long-term market-implied rate path and sovereign bond spread."
+          "name": "Medium 2Y Yield Spread Momentum (10-Day Delta)",
+          "weight": 30,
+          "rawReading": "10d Delta: +0.17% (z-score: 2.15)",
+          "normalizedScore": -0.821,
+          "weightedScore": -24.63,
+          "rationale": "Confirms multi-week monetary policy divergence and swing momentum."
         },
         {
-          "name": "European Energy Terms-of-Trade (Brent)",
-          "weight": 18,
-          "rawReading": "$96.42 (30d z-score: 0.05)",
-          "normalizedScore": -0.035,
-          "weightedScore": -0.63,
-          "rationale": "Oil price pressure on Eurozone trade balance."
+          "name": "10Y Sovereign Yield Spread Momentum (10-Day Delta)",
+          "weight": 20,
+          "rawReading": "Spread: +1.51% | 10d Delta: +0.10%",
+          "normalizedScore": -0.704,
+          "weightedScore": -14.08,
+          "rationale": "Long-term economic growth divergence and sovereign bond term premium."
         },
         {
-          "name": "US Dollar Index (DXY) 30d Momentum",
-          "weight": 12,
-          "rawReading": "100.92 (+2.15% 30d)",
-          "normalizedScore": -0.944,
-          "weightedScore": -11.33,
-          "rationale": "Broad trade-weighted USD strength."
-        },
-        {
-          "name": "Volatility & Liquidity Regime (VIX)",
+          "name": "European Energy Terms-of-Trade (Brent Crude)",
           "weight": 10,
-          "rawReading": "VIX: 14.34 (Regime: Risk-On)",
-          "normalizedScore": 0.3,
-          "weightedScore": 3,
-          "rationale": "Global risk appetite vs dollar liquidity hoarding."
+          "rawReading": "$97.63 (30d z-score: 0.23)",
+          "normalizedScore": -0.167,
+          "weightedScore": -1.67,
+          "rationale": "Oil price burden on Eurozone trade balance vs US energy self-sufficiency."
+        },
+        {
+          "name": "Global Risk Sentiment & VIX Velocity",
+          "weight": 10,
+          "rawReading": "VIX: 15.34 (-1.9 5d)",
+          "normalizedScore": 0.261,
+          "weightedScore": 2.61,
+          "rationale": "Global risk-off dollar liquidity hoarding vs risk-on pro-cyclical euro flows."
         }
       ],
+      "yieldSpreads": {
+        "us2y": 4.76,
+        "de2y": 3.135563132,
+        "spread2y": 1.624,
+        "spread2yFastDelta3d": 0.032,
+        "spread2yMedDelta10d": 0.174,
+        "spread2yZScore": 2.1463669295464447,
+        "us10y": 4.96,
+        "de10y": 3.4527398521,
+        "spread10y": 1.507,
+        "spread10yDelta10d": 0.105
+      },
       "rateMetrics": {
         "liveFedRate": 3.88,
         "liveFedSource": "NY Fed (EFFR: 3.88%, Target: [3.75% - 4.00%])",
         "liveEcbRate": 2.5,
         "currentRateDifferential": 1.38,
         "rateDifferential30dChange": -2.65,
-        "rateDifferentialRegime": "COMPRESSING_EUR_RELIEF"
+        "rateRegime": "WIDENING_USD_ADVANTAGE"
       },
       "rawMetrics": {
-        "us10y": 4.9629998207092285,
-        "brent": 96.41999816894531,
-        "dxyChange": 2.15
+        "us2y": 4.76,
+        "de2y": 3.135563132,
+        "us10y": 4.96,
+        "de10y": 3.4527398521,
+        "brent": 97.62999725341797,
+        "vix": 15.34000015258789
       }
     },
-    "surprise": {
-      "score": -38.4,
-      "status": "US_DATA_SURPASSING_EXPECTATIONS",
-      "evidence": [
-        {
-          "headline": "SK Hynix's Shares Soar — Why Barclays Sees Potential For The Stock To Double",
-          "url": "https://stocktwits.com/news-articles/markets/equity/sk-hynix-shares-soar-barclays-sees-potential-for-the-stock-to-double/cZZR30AR7qF",
-          "snippet": "Barclays set a $330 price target, more than double the stock's closing price on Monday. The bank expects a continued memory shortage to support higher...",
-          "contentSource": "FETCHED_FULL_TEXT",
-          "charCount": 3000,
-          "date": "3 days ago",
-          "scoreContribution": -19.2,
-          "matchedTokens": [
-            "higher",
-            "surged"
-          ],
-          "isNegated": false,
-          "recencyWeight": 1.2
-        },
-        {
-          "headline": "USD/JPY Caught Between NFP, the Fed and MOF Intervention Risk",
-          "url": "https://www.stonex.com/en-gb/news-and-analysis/usd-jpy-caught-between-nfp-the-fed-and-mof-intervention-risk/",
-          "snippet": "USD/JPY has surpassed several intervention levels before NFP. See why a weak jobs report could spark bigger moves than another upside surprise.",
-          "contentSource": "SNIPPET_FALLBACK",
-          "charCount": 205,
-          "date": "2 days ago",
-          "scoreContribution": -9.6,
-          "matchedTokens": [
-            "surpassed"
-          ],
-          "isNegated": false,
-          "recencyWeight": 1.2
-        },
-        {
-          "headline": "Maplebear Inc. (CART) Stock Price, News, Quote & History",
-          "url": "https://ca.finance.yahoo.com/quote/CART/",
-          "snippet": "Find the latest Maplebear Inc. (CART) stock quote, history, news and other vital information to help you with your stock trading and investing.",
-          "contentSource": "FETCHED_FULL_TEXT",
-          "charCount": 3000,
-          "date": "1 day ago",
-          "scoreContribution": 0,
-          "matchedTokens": [],
-          "isNegated": false,
-          "recencyWeight": 1.2
-        },
-        {
-          "headline": "Week in Focus – 21-25th September 2026: Highlights include Xi’s visit to the US, Global Flash PMIs, Aussie jobs and the SNB rate decision",
-          "url": "https://www.newsquawk.com/headlines/week-in-focus--21-25th-september-2026-highlights-include-xis-visit-to-the-us-global-flash-pmis-aussie-jobs-and-the-snb-rate-decision",
-          "snippet": "MON: Japanese Market Holiday, Chinese LPR (Sep) TUE: US Richmond Fed (Sep) WED: SARB Announcement, Global Flash PMIs (Sep) THU: Chinese President Xi's...",
-          "contentSource": "FETCHED_FULL_TEXT",
-          "charCount": 3000,
-          "date": "4 days ago",
-          "scoreContribution": 0,
-          "matchedTokens": [],
-          "isNegated": false,
-          "recencyWeight": 1.2
-        },
-        {
-          "headline": "Eurozone flash Manufacturing PMI remains steady at 52.7 in September",
-          "url": "https://www.fxstreet.com/news/eurozone-flash-manufacturing-pmi-remains-steady-at-527-in-september-202609230804",
-          "snippet": "Preliminary HCOB Manufacturing Purchasing Managers' Index (PMI) in the Eurozone remains steady at 52.7 in September, while it was expected to drop to 52.6.",
-          "contentSource": "SNIPPET_FALLBACK",
-          "charCount": 224,
-          "date": "5 hours ago",
-          "scoreContribution": 0,
-          "matchedTokens": [],
-          "isNegated": false,
-          "recencyWeight": 1.2
-        },
-        {
-          "headline": "Eurozone PMIs beat forecasts as euro slips, fuelling bets on ECB rate rise",
-          "url": "https://www.vtmarkets.com/en-mena/live-updates/eurozone-pmis-beat-forecasts-as-euro-slips-fuelling-bets-on-ecb-rate-rise/",
-          "snippet": "The Eurozone's preliminary HCOB Manufacturing PMI held at 52.7 in September, defying expectations for a dip to 52.6. Wider activity strengthened: the...",
-          "contentSource": "SNIPPET_FALLBACK",
-          "charCount": 227,
-          "date": "2 hours ago",
-          "scoreContribution": -9.6,
-          "matchedTokens": [
-            "beat"
-          ],
-          "isNegated": false,
-          "recencyWeight": 1.2
-        }
-      ],
-      "tokensDetected": {
-        "usBullish": [
-          "higher",
-          "surpassed",
-          "beat"
-        ],
-        "usBearish": [],
-        "euBullish": [
-          "surged"
-        ],
-        "euBearish": []
-      }
+    "positioning": {
+      "score": 50,
+      "status": "EXTREME_DIVERGENCE_REVERSAL",
+      "metrics": {
+        "reportDate": "2026-09-15",
+        "nonCommercialLong": 209000,
+        "nonCommercialShort": 235993,
+        "netPosition": -26993,
+        "netPosition4wChange": 9359,
+        "openInterest": 920035,
+        "netPctOfOpenInterest": -2.9,
+        "cotIndex52w": 18,
+        "minNet52w": -72447,
+        "maxNet52w": 180305,
+        "isCrowdedLong": false,
+        "isCrowdedShort": true,
+        "isFlowDecelerating": true,
+        "sizingMultiplier": 1,
+        "regime": "EXTREME_DIVERGENCE_REVERSAL"
+      },
+      "rationale": "Bullish Short Squeeze Divergence: CoT Index is depressed (18%), and 4-week net flow is accumulating (+9,359 contracts). Elevated probability of short squeeze rally."
     },
     "technical": {
-      "score": -83.5,
-      "currentPrice": 1.1406,
-      "sma20": 1.1571,
-      "sma20SlopePips": -10.9,
+      "score": -56.4,
+      "currentPrice": 1.1377,
+      "weeklyTrend": "WEEKLY_BEARISH",
+      "sma20w": 1.1544,
+      "sma20": 1.1569,
+      "sma20SlopePips": -11.2,
       "sma50": 1.154,
       "sma200": 1.1626,
-      "rsiWilder": 27.6,
-      "rsiScore": -20.5,
-      "atrPips": 50,
+      "rsiWilder": 25.3,
+      "rsiScore": 12,
+      "rsiExhaustionState": "OVERSOLD_EXHAUSTION",
+      "atrPips": 55,
+      "localSwingHigh5d": 1.1495,
+      "localSwingLow5d": 1.1374,
       "swingHigh20": 1.1656,
-      "swingLow20": 1.1405,
-      "channelMid": 1.1531
+      "swingLow20": 1.1374,
+      "channelMid": 1.1515,
+      "breakoutState": "INSIDE_RANGE"
     }
   },
   "tradePlan": {
-    "regime": "BEARISH",
-    "action": "SELL EUR/USD (Short on Pullback)",
-    "conviction": "MODERATE",
-    "rateRegimeFlag": "COMPRESSING_EUR_RELIEF",
-    "entryType": "DEEP_MEAN_REVERSION",
-    "entryZone": "1.1488 - 1.1571 (Resistance retest at declining 20 SMA)",
-    "entryMid": 1.153,
-    "stopLossPrice": 1.1731,
-    "stopDistancePips": 201,
-    "target1Price": 1.1229,
-    "target1Pips": 301,
-    "target1RR": "1 : 1.5",
-    "target2Price": 1.1028,
-    "target2Pips": 502,
-    "target2RR": "1 : 2.5",
-    "dailyAtrPips": 50,
-    "holdingHorizon": "10 to 25 trading days",
+    "regime": "NEUTRAL_RANGE",
+    "action": "STAND ASIDE (FLOW_DIVERGENCE_SQUEEZE_VETO)",
+    "conviction": "STAND_ASIDE",
+    "rateRegimeFlag": "WIDENING_USD_ADVANTAGE",
+    "positioningRegimeFlag": "EXTREME_DIVERGENCE_REVERSAL",
+    "vetoTriggered": true,
+    "vetoReason": "Macro is USD-bullish, but institutional hedge funds are actively covering shorts (+9,359 contracts in 4w) at 52-week positioning lows (18% CoT Index). High risk of an aggressive short squeeze; trend-following shorts prohibited.",
+    "entryType": "STAND_ASIDE",
+    "entryZone": "Local Support: 1.1374 | Resistance Pivot: 1.1495",
+    "entryMid": 1.1377,
+    "stopLossPrice": 0,
+    "stopDistancePips": 0,
+    "target1Price": 0,
+    "target1Pips": 0,
+    "target1RR": "N/A",
+    "target2Price": 0,
+    "target2Pips": 0,
+    "target2RR": "N/A",
+    "dailyAtrPips": 55,
+    "holdingHorizon": "Stand aside until short-covering accumulation pressure subsides",
     "sizing": {
       "accountEquity": 50000,
-      "riskPercentage": 1,
-      "dollarRisk": 500,
-      "stopDistancePips": 201,
+      "riskPercentage": 0,
+      "dollarRisk": 0,
+      "stopDistancePips": 0,
       "pipValuePerLot": 10,
-      "recommendedLots": 0.25,
-      "miniLots": 3
+      "sizingMultiplier": 1,
+      "effectiveLots": 0,
+      "recommendedLots": 0,
+      "miniLots": 0
     }
   }
 }
