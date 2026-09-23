@@ -4,7 +4,7 @@
   "description": "",
   "main": "eurusd_full_system.ts",
   "scripts": {
-    "start": "tsx eurusd_full_system.ts",
+    "start": "bun run eurusd_full_system.ts",
     "build": "tsc"
   },
   "keywords": [],
