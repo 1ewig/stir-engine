@@ -1,0 +1,16 @@
+# Environment variables & secrets
+.env
+.env.local
+.env.*
+
+# Dependencies
+node_modules/
+
+# TypeScript build output
+dist/
+
+# Logs & temp files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

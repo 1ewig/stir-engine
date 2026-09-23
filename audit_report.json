@@ -1,0 +1,133 @@
+{
+  "timestamp": "2026-09-23T12:01:28.743Z",
+  "config": {
+    "accountEquity": 50000,
+    "maxRiskPerTradePct": 0.01,
+    "layerWeights": {
+      "macro": 0.6,
+      "surprise": 0.2,
+      "technical": 0.2
+    },
+    "convictionThreshold": 30,
+    "cacheTtlMs": 300000
+  },
+  "compositeScore": -52.3,
+  "verdict": "SELL EUR/USD (Short on Pullback)",
+  "layers": {
+    "macro": {
+      "score": -53,
+      "bias": "STRONG_USD",
+      "factors": [
+        {
+          "name": "Monetary Policy & Rate Differential",
+          "weight": 30,
+          "rawReading": "Fed (5.25%) - ECB (2.5%) = +2.75% spread",
+          "normalizedScore": -0.762,
+          "weightedScore": -22.86,
+          "rationale": "Continuous carry advantage based on dynamic central bank rate divergence."
+        },
+        {
+          "name": "US 10Y Sovereign Yield Momentum",
+          "weight": 25,
+          "rawReading": "4.963% (30d z-score: 1.41)",
+          "normalizedScore": -0.755,
+          "weightedScore": -18.88,
+          "rationale": "Z-score of US 10-Year Treasury Yield vs 30-day baseline."
+        },
+        {
+          "name": "European Energy Terms-of-Trade (Brent)",
+          "weight": 20,
+          "rawReading": "$96.19 (30d z-score: 0.02)",
+          "normalizedScore": -0.011,
+          "weightedScore": -0.22,
+          "rationale": "Crude oil price pressure on European trade balance."
+        },
+        {
+          "name": "US Dollar Index (DXY) 30d Trend",
+          "weight": 15,
+          "rawReading": "100.87 (+2.1% 30d)",
+          "normalizedScore": -0.939,
+          "weightedScore": -14.08,
+          "rationale": "Dollar basket momentum."
+        },
+        {
+          "name": "Volatility & Liquidity Sentiment (VIX)",
+          "weight": 10,
+          "rawReading": "VIX: 14.31 (Regime: Risk-On)",
+          "normalizedScore": 0.3,
+          "weightedScore": 3,
+          "rationale": "Risk appetite vs safe-haven dollar liquidity interaction."
+        }
+      ],
+      "rawMetrics": {
+        "us10y": 4.9629998207092285,
+        "brent": 96.19000244140625,
+        "dxyChange": 2.1,
+        "ecbDepositRate": 2.5,
+        "fedFundsRate": 5.25
+      }
+    },
+    "surprise": {
+      "score": -12,
+      "status": "CONSENSUS_IN_LINE",
+      "evidence": [
+        {
+          "headline": "Breaking: US Nonfarm Payrolls rise by 57K in June vs. 110K expected",
+          "snippet": "Nonfarm Payrolls (NFP) in the United States (US) rose by 57K in June, the US Bureau of Labor Statistics (BLS) reported on Thursday.",
+          "sentimentImpact": -12
+        },
+        {
+          "headline": "How the Jobs Report Moves Gold and Silver: The Five-Step Chain Behind Every Move",
+          "snippet": "Gold and silver prices react inversely to the U.S. jobs report. Learn the transmission chain — NFP → real yields → dollar → metals — and...",
+          "sentimentImpact": 0
+        }
+      ],
+      "tokensDetected": {
+        "usBullish": [
+          "rose"
+        ],
+        "usBearish": [],
+        "euBullish": [],
+        "euBearish": []
+      }
+    },
+    "technical": {
+      "score": -90.5,
+      "currentPrice": 1.1416,
+      "sma20": 1.1571,
+      "sma50": 1.154,
+      "sma200": 1.1626,
+      "rsiWilder": 28.3,
+      "atrPips": 50,
+      "swingHigh20": 1.1656,
+      "swingLow20": 1.1408,
+      "channelMid": 1.1532
+    }
+  },
+  "tradePlan": {
+    "regime": "BEARISH",
+    "action": "SELL EUR/USD (Short on Pullback)",
+    "conviction": "MODERATE",
+    "entryZone": "1.1478 - 1.1571 (Mean Reversion into declining 20-day SMA)",
+    "entryMid": 1.1524,
+    "stopLossPrice": 1.1731,
+    "stopDistancePips": 207,
+    "target1Price": 1.1214,
+    "target1Pips": 310,
+    "target1RR": "1 : 1.5",
+    "target2Price": 1.1007,
+    "target2Pips": 517,
+    "target2RR": "1 : 2.5",
+    "dailyAtrPips": 50,
+    "holdingHorizon": "10 to 25 trading days",
+    "sizing": {
+      "accountEquity": 50000,
+      "riskPercentage": 1,
+      "dollarRisk": 500,
+      "stopDistancePips": 207,
+      "pipValuePerLot": 10,
+      "recommendedLots": 0.24,
+      "miniLots": 2
+    }
+  }
+}
