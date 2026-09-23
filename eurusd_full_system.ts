@@ -191,7 +191,10 @@ class RobustDataProvider {
     const startTime = Date.now();
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+        const res = await fetch(url, {
+          headers: { 'User-Agent': 'Mozilla/5.0' },
+          signal: AbortSignal.timeout(6000)
+        });
         if (!res.ok) {
           if (res.status === 429 || res.status >= 500) {
             throw new Error(`HTTP ${res.status}`);
@@ -227,12 +230,15 @@ class RobustDataProvider {
   async fetchTextWithRetry(
     name: string,
     url: string,
-    retries = 3
+    retries = 2
   ): Promise<{ text: string | null; health: DataSourceHealth }> {
     const startTime = Date.now();
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+        const res = await fetch(url, {
+          headers: { 'User-Agent': 'Mozilla/5.0' },
+          signal: AbortSignal.timeout(6000)
+        });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const text = await res.text();
         const latency = Date.now() - startTime;
@@ -262,6 +268,7 @@ const dataProvider = new RobustDataProvider();
 interface LiveRates {
   fedRate: number;
   fedSource: string;
+  fedRate30dAgo: number;
   ecbRate: number;
   ecbRate30dAgo: number;
   rateDifferential: number;
@@ -271,38 +278,63 @@ interface LiveRates {
 export async function fetchLivePolicyRates(): Promise<LiveRates> {
   console.log("Fetching live Central Bank policy rates (Federal Reserve & ECB)...");
 
-  let fedRate = 3.875; // Fallback Fed midpoint
-  let fedSource = "FRED (DFEDTARU/DFEDTARL Midpoint)";
+  let fedRate = 3.875;
+  let fedRate30dAgo = 3.875;
+  let fedSource = "Static Fallback (Midpoint 3.875%)";
 
-  // 1. Try Federal Reserve Bank of NY API (EFFR)
+  // 1. Primary Fed Source: Federal Reserve Bank of New York (EFFR 30-day series & Target Range)
   const nyFedRes = await dataProvider.fetchWithRetry<any>(
     'NY_Fed_Reference_Rates',
-    'https://markets.newyorkfed.org/api/rates/all/latest.json'
+    'https://markets.newyorkfed.org/api/rates/unsecured/effr/last/30.json'
   );
 
-  const effr = nyFedRes.data?.refRates?.find((r: any) => r.type === 'EFFR')?.percentRate;
-  if (typeof effr === 'number' && effr > 0) {
-    fedRate = effr;
-    fedSource = "NY Fed (Effective Federal Funds Rate)";
+  const effrRates = nyFedRes.data?.refRates;
+  if (Array.isArray(effrRates) && effrRates.length > 0) {
+    const latest = effrRates[0];
+    if (typeof latest.percentRate === 'number' && latest.percentRate > 0) {
+      fedRate = latest.percentRate;
+      const targetFrom = latest.targetRateFrom;
+      const targetTo = latest.targetRateTo;
+      fedSource = (targetFrom !== undefined && targetTo !== undefined)
+        ? `NY Fed (EFFR: ${fedRate.toFixed(2)}%, Target: [${targetFrom.toFixed(2)}% - ${targetTo.toFixed(2)}%])`
+        : `NY Fed (Effective Federal Funds Rate: ${fedRate.toFixed(2)}%)`;
+    }
+
+    const oldest = effrRates[effrRates.length - 1];
+    if (typeof oldest?.percentRate === 'number' && oldest.percentRate > 0) {
+      fedRate30dAgo = oldest.percentRate;
+    }
   } else {
-    // 2. Fallback to St. Louis Fed FRED Target Range Midpoint
+    // 2. Secondary Fed Fallback: FRED Target Range (DFEDTARU / DFEDTARL)
     const upperRes = await dataProvider.fetchTextWithRetry(
       'FRED_DFEDTARU',
-      'https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFEDTARU'
+      'https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFEDTARU',
+      2
     );
     const lowerRes = await dataProvider.fetchTextWithRetry(
       'FRED_DFEDTARL',
-      'https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFEDTARL'
+      'https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFEDTARL',
+      2
     );
 
     if (upperRes.text && lowerRes.text) {
-      const uLines = upperRes.text.trim().split('\n');
-      const lLines = lowerRes.text.trim().split('\n');
-      const uVal = parseFloat(uLines[uLines.length - 1]?.split(',')[1]);
-      const lVal = parseFloat(lLines[lLines.length - 1]?.split(',')[1]);
-      if (!isNaN(uVal) && !isNaN(lVal) && uVal > 0) {
-        fedRate = (uVal + lVal) / 2;
-        fedSource = `FRED Target Range [${lVal.toFixed(2)}% - ${uVal.toFixed(2)}%] Midpoint`;
+      const uLines = upperRes.text.trim().split('\n').filter(l => l.includes(','));
+      const lLines = lowerRes.text.trim().split('\n').filter(l => l.includes(','));
+
+      if (uLines.length > 0 && lLines.length > 0) {
+        const uLatest = parseFloat(uLines[uLines.length - 1].split(',')[1]);
+        const lLatest = parseFloat(lLines[lLines.length - 1].split(',')[1]);
+        if (!isNaN(uLatest) && !isNaN(lLatest) && uLatest > 0) {
+          fedRate = (uLatest + lLatest) / 2;
+          fedSource = `FRED Target Range [${lLatest.toFixed(2)}% - ${uLatest.toFixed(2)}%] Midpoint`;
+        }
+
+        const idx30d = Math.max(1, uLines.length - 23);
+        const u30d = parseFloat(uLines[idx30d]?.split(',')[1]);
+        const l30d = parseFloat(lLines[idx30d]?.split(',')[1]);
+        if (!isNaN(u30d) && !isNaN(l30d) && u30d > 0) {
+          fedRate30dAgo = (u30d + l30d) / 2;
+        }
       }
     }
   }
@@ -331,12 +363,13 @@ export async function fetchLivePolicyRates(): Promise<LiveRates> {
   }
 
   const rateDifferential = parseFloat((fedRate - ecbRate).toFixed(3));
-  // 30-day rate differential change (approx):
-  const rateDifferential30dChange = parseFloat((rateDifferential - (fedRate - ecbRate30dAgo)).toFixed(3));
+  const rateDifferential30dAgo = parseFloat((fedRate30dAgo - ecbRate30dAgo).toFixed(3));
+  const rateDifferential30dChange = parseFloat((rateDifferential - rateDifferential30dAgo).toFixed(3));
 
   return {
     fedRate,
     fedSource,
+    fedRate30dAgo,
     ecbRate,
     ecbRate30dAgo,
     rateDifferential,
@@ -620,12 +653,17 @@ async function runSurpriseEngine(): Promise<SurpriseLayerResult> {
   if (targetUrls.length > 0) {
     console.log(`[Surprise Engine] Fetching & extracting clean markdown from ${targetUrls.length} top news URLs...`);
     try {
-      const fetchResponse = await client.fetch.getContents({
+      const fetchPromise = client.fetch.getContents({
         urls: targetUrls,
         format: "markdown",
         links: false,
-        per_url_timeout_ms: 15000
+        per_url_timeout_ms: 8000
       });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Batch fetch timed out after 12s")), 12000)
+      );
+
+      const fetchResponse: any = await Promise.race([fetchPromise, timeoutPromise]);
 
       if (fetchResponse?.results) {
         for (const res of fetchResponse.results) {
@@ -639,12 +677,14 @@ async function runSurpriseEngine(): Promise<SurpriseLayerResult> {
     }
   }
 
-  // 3. Token lexicon with negation words
+  // 3. Token lexicon with negation words and inverted metrics
   const usBullishTokens = ['beat', 'exceeded', 'surpassed', 'higher', 'hotter', 'acceleration', 'jumped', 'rose', 'resilient', 'stronger', 'grew'];
   const usBearishTokens = ['missed', 'cooler', 'slowed', 'slumped', 'below', 'contracted', 'declined', 'weakened', 'disappointed', 'softened'];
   const euBullishTokens = ['rebounded', 'expanded', 'upturn', 'accelerating', 'improved', 'surged'];
   const euBearishTokens = ['contraction', 'stagnant', 'slump', 'recession', 'subdued', 'struggling', 'deteriorated'];
   const negationTokens = ['not', 'no', 'never', "didn't", 'without', 'failed', 'barely', 'scarcely'];
+  // Metrics where "rose/higher" indicates economic weakness and "declined/lower" indicates economic strength
+  const invertedMetricTokens = ['unemployment', 'jobless', 'claims', 'layoffs', 'layoff'];
 
   const detectedTokens = {
     usBullish: [] as string[],
@@ -663,36 +703,73 @@ async function runSurpriseEngine(): Promise<SurpriseLayerResult> {
 
     // Use full text (truncated to first 3000 chars for core body analysis) or snippet
     const rawContent = (fetchedFullText ? fetchedFullText.slice(0, 3000) : `${item.title} ${item.snippet}`).toLowerCase();
-    const words = rawContent.split(/\s+/);
+    // Normalize punctuation to spaces for accurate token boundary matching
+    const cleanContent = rawContent.replace(/[^a-z0-9\s-]/g, ' ');
+    const words = cleanContent.split(/\s+/).filter(Boolean);
     let itemScore = 0;
-    const matched: string[] = [];
+    const matchedDetails: { word: string; isNegated: boolean; isInverted: boolean }[] = [];
 
-    // Check for negations in proximity (within 3 words)
+    // Check for negations in proximity (within 3 words prior to token)
     const isNegatedContext = (index: number) => {
       const start = Math.max(0, index - 3);
       const sub = words.slice(start, index);
       return sub.some(w => negationTokens.includes(w));
     };
 
+    // Check for inverted metric context (e.g. unemployment, jobless claims, layoffs) within 4 words
+    const isInvertedContext = (index: number) => {
+      const start = Math.max(0, index - 4);
+      const end = Math.min(words.length, index + 5);
+      const sub = words.slice(start, end);
+      return sub.some(w => invertedMetricTokens.some(im => w === im || w.startsWith(im)));
+    };
+
     words.forEach((word, idx) => {
       const negated = isNegatedContext(idx);
+      const inverted = isInvertedContext(idx);
 
       if (usBullishTokens.includes(word)) {
-        matched.push(word);
-        detectedTokens.usBullish.push(word);
-        itemScore += negated ? +6 : -8; // US beat = USD Stronger (- score)
+        if (inverted) {
+          // Inverted metric rose (e.g. "unemployment rose" / "claims jumped") -> US weakness -> USD Bearish / EUR Bullish (+ score)
+          matchedDetails.push({ word: `${word} [inverted: unemployment/claims]`, isNegated: negated, isInverted: true });
+          detectedTokens.usBearish.push(`${word} [inverted]`);
+          itemScore += negated ? -8 : +6;
+        } else {
+          matchedDetails.push({ word, isNegated: negated, isInverted: false });
+          detectedTokens.usBullish.push(word);
+          itemScore += negated ? +6 : -8; // US beat = USD Stronger (- score)
+        }
       } else if (usBearishTokens.includes(word)) {
-        matched.push(word);
-        detectedTokens.usBearish.push(word);
-        itemScore += negated ? -8 : +6; // US miss = EUR Stronger (+ score)
+        if (inverted) {
+          // Inverted metric fell (e.g. "jobless claims declined" / "unemployment slowed") -> US strength -> USD Bullish / EUR Bearish (- score)
+          matchedDetails.push({ word: `${word} [inverted: unemployment/claims]`, isNegated: negated, isInverted: true });
+          detectedTokens.usBullish.push(`${word} [inverted]`);
+          itemScore += negated ? +6 : -8;
+        } else {
+          matchedDetails.push({ word, isNegated: negated, isInverted: false });
+          detectedTokens.usBearish.push(word);
+          itemScore += negated ? -8 : +6; // US miss = EUR Stronger (+ score)
+        }
       } else if (euBullishTokens.includes(word)) {
-        matched.push(word);
-        detectedTokens.euBullish.push(word);
-        itemScore += negated ? -6 : +8; // EU beat = EUR Stronger (+ score)
+        if (inverted) {
+          matchedDetails.push({ word: `${word} [inverted]`, isNegated: negated, isInverted: true });
+          detectedTokens.euBearish.push(`${word} [inverted]`);
+          itemScore += negated ? +8 : -6;
+        } else {
+          matchedDetails.push({ word, isNegated: negated, isInverted: false });
+          detectedTokens.euBullish.push(word);
+          itemScore += negated ? -6 : +8; // EU beat = EUR Stronger (+ score)
+        }
       } else if (euBearishTokens.includes(word)) {
-        matched.push(word);
-        detectedTokens.euBearish.push(word);
-        itemScore += negated ? +8 : -6; // EU miss = USD Stronger (- score)
+        if (inverted) {
+          matchedDetails.push({ word: `${word} [inverted]`, isNegated: negated, isInverted: true });
+          detectedTokens.euBullish.push(`${word} [inverted]`);
+          itemScore += negated ? -6 : +8;
+        } else {
+          matchedDetails.push({ word, isNegated: negated, isInverted: false });
+          detectedTokens.euBearish.push(word);
+          itemScore += negated ? +8 : -6; // EU miss = USD Stronger (- score)
+        }
       }
     });
 
@@ -712,13 +789,13 @@ async function runSurpriseEngine(): Promise<SurpriseLayerResult> {
       charCount: rawContent.length,
       date: item.date,
       scoreContribution: parseFloat(cappedScore.toFixed(1)),
-      matchedTokens: Array.from(new Set(matched)),
-      isNegated: matched.some((_, i) => isNegatedContext(i)),
+      matchedTokens: Array.from(new Set(matchedDetails.map(m => m.word))),
+      isNegated: matchedDetails.some(m => m.isNegated),
       recencyWeight
     });
   }
 
-  const finalSurpriseScore = Math.max(-100, Math.min(100, aggregateSurpriseScore || -15));
+  const finalSurpriseScore = Math.max(-100, Math.min(100, Number.isFinite(aggregateSurpriseScore) ? aggregateSurpriseScore : 0));
 
   return {
     score: finalSurpriseScore,
@@ -744,17 +821,45 @@ async function runTechnicalEngine(): Promise<TechnicalLayerResult> {
   const { data } = await dataProvider.fetchWithRetry<any>('Yahoo_EURUSD_Chart', url);
 
   const quotes = data?.chart?.result?.[0]?.indicators?.quote?.[0];
-  const closes: number[] = (quotes?.close || []).filter((x: any): x is number => typeof x === 'number');
-  const highs: number[] = (quotes?.high || []).filter((x: any): x is number => typeof x === 'number');
-  const lows: number[] = (quotes?.low || []).filter((x: any): x is number => typeof x === 'number');
+  const closes: number[] = (quotes?.close || []).filter((x: any): x is number => typeof x === 'number' && !isNaN(x) && x > 0);
+  const highs: number[] = (quotes?.high || []).filter((x: any): x is number => typeof x === 'number' && !isNaN(x) && x > 0);
+  const lows: number[] = (quotes?.low || []).filter((x: any): x is number => typeof x === 'number' && !isNaN(x) && x > 0);
+
+  // Guard against missing, truncated or invalid price series from Yahoo Finance
+  if (!closes || closes.length < 20 || !highs || highs.length < 20 || !lows || lows.length < 20) {
+    console.warn("[Technical Engine] Insufficient price history from Yahoo Finance (< 20 bars). Falling back to safe baseline.");
+    dataProvider.healthLogs.push({
+      source: 'Yahoo_EURUSD_Chart',
+      status: 'FAILED',
+      latencyMs: 0,
+      details: 'Insufficient price history returned (< 20 bars)'
+    });
+    const fallbackPrice = closes.length > 0 ? closes[closes.length - 1] : 1.0800;
+    return {
+      score: 0,
+      currentPrice: parseFloat(fallbackPrice.toFixed(4)),
+      sma20: parseFloat(fallbackPrice.toFixed(4)),
+      sma20SlopePips: 0,
+      sma50: parseFloat(fallbackPrice.toFixed(4)),
+      sma200: parseFloat(fallbackPrice.toFixed(4)),
+      rsiWilder: 50.0,
+      rsiScore: 0,
+      atrPips: 60,
+      swingHigh20: parseFloat((fallbackPrice + 0.0060).toFixed(4)),
+      swingLow20: parseFloat((fallbackPrice - 0.0060).toFixed(4)),
+      channelMid: parseFloat(fallbackPrice.toFixed(4))
+    };
+  }
 
   const currentPrice = closes[closes.length - 1];
 
-  // Moving averages
+  // Moving averages with dynamic lookback protection
   const calcSMA = (p: number, offset = 0) => {
     const end = closes.length - offset;
-    const slice = closes.slice(end - p, end);
-    return slice.reduce((a, b) => a + b, 0) / p;
+    const period = Math.min(p, end);
+    if (period <= 0) return closes[closes.length - 1] || 1.08;
+    const slice = closes.slice(end - period, end);
+    return slice.reduce((a, b) => a + b, 0) / period;
   };
 
   const sma20 = calcSMA(20);
@@ -768,7 +873,8 @@ async function runTechnicalEngine(): Promise<TechnicalLayerResult> {
   // Wilder's indicators
   const rsiWilder = calcWilderRSI(closes, 14);
   const atrDaily = calcWilderATR(highs, lows, closes, 14);
-  const atrPips = Math.round(atrDaily * 10000);
+  const safeAtrDaily = (atrDaily && !isNaN(atrDaily) && atrDaily > 0) ? atrDaily : 0.0060;
+  const atrPips = Math.round(safeAtrDaily * 10000);
 
   // 20-day swing extremes
   const recentHighs = highs.slice(-20);
@@ -779,9 +885,9 @@ async function runTechnicalEngine(): Promise<TechnicalLayerResult> {
 
   // Technical Scoring Formula (Continuous, -100 to +100):
   // 1. SMA Distance in ATR units (40% weight of technical layer)
-  const dist20Atr = (currentPrice - sma20) / atrDaily;
-  const dist50Atr = (currentPrice - sma50) / atrDaily;
-  const dist200Atr = (currentPrice - sma200) / atrDaily;
+  const dist20Atr = (currentPrice - sma20) / safeAtrDaily;
+  const dist50Atr = (currentPrice - sma50) / safeAtrDaily;
+  const dist200Atr = (currentPrice - sma200) / safeAtrDaily;
   const smaDistanceScore = (tanhNormalize(dist20Atr, 0.6) * 20) +
                            (tanhNormalize(dist50Atr, 0.6) * 12) +
                            (tanhNormalize(dist200Atr, 0.6) * 8);
@@ -841,7 +947,8 @@ export function buildTradePlan(
     const entryMid = parseFloat(((entryLow + entryHigh) / 2).toFixed(4));
 
     const stopLossPrice = parseFloat((tech.swingHigh20 + (tech.atrPips * 0.0001 * 1.5)).toFixed(4));
-    const stopDistancePips = Math.round((stopLossPrice - entryMid) * 10000);
+    const rawStopDistance = Math.round((stopLossPrice - entryMid) * 10000);
+    const stopDistancePips = Math.max(15, isFinite(rawStopDistance) && rawStopDistance > 0 ? rawStopDistance : 50);
 
     const target1Price = parseFloat((entryMid - (stopDistancePips * 0.0001 * 1.5)).toFixed(4));
     const target1Pips = Math.round((entryMid - target1Price) * 10000);
@@ -849,7 +956,11 @@ export function buildTradePlan(
     const target2Price = parseFloat((entryMid - (stopDistancePips * 0.0001 * 2.5)).toFixed(4));
     const target2Pips = Math.round((entryMid - target2Price) * 10000);
 
-    const recommendedLots = parseFloat((dollarRisk / (stopDistancePips * pipValue)).toFixed(2));
+    let recommendedLots = 0;
+    if (stopDistancePips > 0 && isFinite(stopDistancePips)) {
+      const calculatedLots = dollarRisk / (stopDistancePips * pipValue);
+      recommendedLots = isFinite(calculatedLots) ? parseFloat(calculatedLots.toFixed(2)) : 0;
+    }
 
     return {
       regime: 'BEARISH',
@@ -889,7 +1000,8 @@ export function buildTradePlan(
     const entryMid = parseFloat(((entryLow + entryHigh) / 2).toFixed(4));
 
     const stopLossPrice = parseFloat((tech.swingLow20 - (tech.atrPips * 0.0001 * 1.5)).toFixed(4));
-    const stopDistancePips = Math.round((entryMid - stopLossPrice) * 10000);
+    const rawStopDistance = Math.round((entryMid - stopLossPrice) * 10000);
+    const stopDistancePips = Math.max(15, isFinite(rawStopDistance) && rawStopDistance > 0 ? rawStopDistance : 50);
 
     const target1Price = parseFloat((entryMid + (stopDistancePips * 0.0001 * 1.5)).toFixed(4));
     const target1Pips = Math.round((target1Price - entryMid) * 10000);
@@ -897,7 +1009,11 @@ export function buildTradePlan(
     const target2Price = parseFloat((entryMid + (stopDistancePips * 0.0001 * 2.5)).toFixed(4));
     const target2Pips = Math.round((target2Price - entryMid) * 10000);
 
-    const recommendedLots = parseFloat((dollarRisk / (stopDistancePips * pipValue)).toFixed(2));
+    let recommendedLots = 0;
+    if (stopDistancePips > 0 && isFinite(stopDistancePips)) {
+      const calculatedLots = dollarRisk / (stopDistancePips * pipValue);
+      recommendedLots = isFinite(calculatedLots) ? parseFloat(calculatedLots.toFixed(2)) : 0;
+    }
 
     return {
       regime: 'BULLISH',
@@ -1078,5 +1194,11 @@ export async function executeFullSystem(config: SystemConfig = DEFAULT_CONFIG): 
   return auditReport;
 }
 
-// Execute directly when called
-executeFullSystem();
+// Execute directly when invoked via CLI, but not when imported as a module in tests
+const isMain = import.meta.main || (typeof process !== 'undefined' && process.argv[1]?.replace(/\\/g, '/').endsWith('eurusd_full_system.ts'));
+if (isMain) {
+  executeFullSystem().catch((err) => {
+    console.error('[Execution Error]:', err);
+    process.exit(1);
+  });
+}

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-23T12:13:13.828Z",
+  "timestamp": "2026-09-23T12:28:18.122Z",
   "config": {
     "accountEquity": 50000,
     "maxRiskPerTradePct": 0.01,
@@ -14,42 +14,42 @@
   "status": "SUCCESS",
   "sourceHealth": [
     {
-      "source": "NY_Fed_Reference_Rates",
+      "source": "VIX_Index",
       "status": "OK",
-      "latencyMs": 807
-    },
-    {
-      "source": "Brent_Crude",
-      "status": "OK",
-      "latencyMs": 1188
-    },
-    {
-      "source": "US10Y_Yield",
-      "status": "OK",
-      "latencyMs": 1203
+      "latencyMs": 928
     },
     {
       "source": "US_Dollar_Index",
       "status": "OK",
-      "latencyMs": 1223
-    },
-    {
-      "source": "VIX_Index",
-      "status": "OK",
-      "latencyMs": 1226
+      "latencyMs": 929
     },
     {
       "source": "Yahoo_EURUSD_Chart",
       "status": "OK",
-      "latencyMs": 1524
+      "latencyMs": 925
+    },
+    {
+      "source": "Brent_Crude",
+      "status": "OK",
+      "latencyMs": 933
+    },
+    {
+      "source": "US10Y_Yield",
+      "status": "OK",
+      "latencyMs": 938
+    },
+    {
+      "source": "NY_Fed_Reference_Rates",
+      "status": "OK",
+      "latencyMs": 1683
     },
     {
       "source": "ECB_Deposit_Rate",
       "status": "OK",
-      "latencyMs": 865
+      "latencyMs": 727
     }
   ],
-  "compositeScore": -43.9,
+  "compositeScore": -38.8,
   "verdict": "SELL EUR/USD (Short on Pullback)",
   "weightsApplied": {
     "macro": 0.6,
@@ -64,7 +64,7 @@
         {
           "name": "Central Bank Rate Differential",
           "weight": 35,
-          "rawReading": "Fed (3.88% via NY Fed (Effective Federal Funds Rate)) - ECB (2.50%) = +1.38%",
+          "rawReading": "Fed (3.88% via NY Fed (EFFR: 3.88%, Target: [3.75% - 4.00%])) - ECB (2.50%) = +1.38%",
           "normalizedScore": -0.129,
           "weightedScore": -4.52,
           "rationale": "Live rate spread carry advantage and 30-day differential regime."
@@ -80,23 +80,23 @@
         {
           "name": "European Energy Terms-of-Trade (Brent)",
           "weight": 18,
-          "rawReading": "$96.32 (30d z-score: 0.03)",
-          "normalizedScore": -0.024,
-          "weightedScore": -0.43,
+          "rawReading": "$96.30 (30d z-score: 0.03)",
+          "normalizedScore": -0.022,
+          "weightedScore": -0.4,
           "rationale": "Oil price pressure on Eurozone trade balance."
         },
         {
           "name": "US Dollar Index (DXY) 30d Momentum",
           "weight": 12,
-          "rawReading": "100.88 (+2.1% 30d)",
-          "normalizedScore": -0.939,
-          "weightedScore": -11.27,
+          "rawReading": "100.91 (+2.13% 30d)",
+          "normalizedScore": -0.943,
+          "weightedScore": -11.32,
           "rationale": "Broad trade-weighted USD strength."
         },
         {
           "name": "Volatility & Liquidity Regime (VIX)",
           "weight": 10,
-          "rawReading": "VIX: 14.29 (Regime: Risk-On)",
+          "rawReading": "VIX: 14.33 (Regime: Risk-On)",
           "normalizedScore": 0.3,
           "weightedScore": 3,
           "rationale": "Global risk appetite vs dollar liquidity hoarding."
@@ -104,21 +104,21 @@
       ],
       "rateMetrics": {
         "liveFedRate": 3.88,
-        "liveFedSource": "NY Fed (Effective Federal Funds Rate)",
+        "liveFedSource": "NY Fed (EFFR: 3.88%, Target: [3.75% - 4.00%])",
         "liveEcbRate": 2.5,
         "currentRateDifferential": 1.38,
-        "rateDifferential30dChange": -2.9,
+        "rateDifferential30dChange": -2.65,
         "rateDifferentialRegime": "COMPRESSING_EUR_RELIEF"
       },
       "rawMetrics": {
         "us10y": 4.9629998207092285,
-        "brent": 96.31999969482422,
-        "dxyChange": 2.1
+        "brent": 96.30000305175781,
+        "dxyChange": 2.13
       }
     },
     "surprise": {
-      "score": -38.4,
-      "status": "US_DATA_SURPASSING_EXPECTATIONS",
+      "score": -11.999999999999995,
+      "status": "CONSENSUS_BALANCED",
       "evidence": [
         {
           "headline": "SK Hynix's Shares Soar — Why Barclays Sees Potential For The Stock To Double",
@@ -150,18 +150,6 @@
           "recencyWeight": 1.2
         },
         {
-          "headline": "Maplebear Inc. (CART) Stock Price, News, Quote & History",
-          "url": "https://ca.finance.yahoo.com/quote/CART/",
-          "snippet": "Find the latest Maplebear Inc. (CART) stock quote, history, news and other vital information to help you with your stock trading and investing.",
-          "contentSource": "FETCHED_FULL_TEXT",
-          "charCount": 3000,
-          "date": "1 day ago",
-          "scoreContribution": 0,
-          "matchedTokens": [],
-          "isNegated": false,
-          "recencyWeight": 1.2
-        },
-        {
           "headline": "Week in Focus – 21-25th September 2026: Highlights include Xi’s visit to the US, Global Flash PMIs, Aussie jobs and the SNB rate decision",
           "url": "https://www.newsquawk.com/headlines/week-in-focus--21-25th-september-2026-highlights-include-xis-visit-to-the-us-global-flash-pmis-aussie-jobs-and-the-snb-rate-decision",
           "snippet": "MON: Japanese Market Holiday, Chinese LPR (Sep) TUE: US Richmond Fed (Sep) WED: SARB Announcement, Global Flash PMIs (Sep) THU: Chinese President Xi's...",
@@ -177,11 +165,14 @@
           "headline": "Eurozone flash Manufacturing PMI remains steady at 52.7 in September",
           "url": "https://www.fxstreet.com/news/eurozone-flash-manufacturing-pmi-remains-steady-at-527-in-september-202609230804",
           "snippet": "Preliminary HCOB Manufacturing Purchasing Managers' Index (PMI) in the Eurozone remains steady at 52.7 in September, while it was expected to drop to 52.6.",
-          "contentSource": "SNIPPET_FALLBACK",
-          "charCount": 224,
+          "contentSource": "FETCHED_FULL_TEXT",
+          "charCount": 3000,
           "date": "4 hours ago",
-          "scoreContribution": 0,
-          "matchedTokens": [],
+          "scoreContribution": 16.8,
+          "matchedTokens": [
+            "accelerating",
+            "below"
+          ],
           "isNegated": false,
           "recencyWeight": 1.2
         },
@@ -198,6 +189,20 @@
           ],
           "isNegated": false,
           "recencyWeight": 1.2
+        },
+        {
+          "headline": "Eurozone private sector growth hits 41-month high",
+          "url": "https://www.sharecast.com/news/international-economic/eurozone-private-sector-growth-hits-41-month-high--23648296.html",
+          "snippet": "Private sector activity across the eurozone expanded at its fastest pace in almost three-and-a-half years in September, according to preliminary survey data...",
+          "contentSource": "SNIPPET_FALLBACK",
+          "charCount": 209,
+          "date": "4 hours ago",
+          "scoreContribution": 9.6,
+          "matchedTokens": [
+            "expanded"
+          ],
+          "isNegated": false,
+          "recencyWeight": 1.2
         }
       ],
       "tokensDetected": {
@@ -206,22 +211,26 @@
           "surpassed",
           "beat"
         ],
-        "usBearish": [],
+        "usBearish": [
+          "below"
+        ],
         "euBullish": [
-          "surged"
+          "surged",
+          "accelerating",
+          "expanded"
         ],
         "euBearish": []
       }
     },
     "technical": {
-      "score": -82.9,
-      "currentPrice": 1.1413,
+      "score": -83.4,
+      "currentPrice": 1.1408,
       "sma20": 1.1571,
-      "sma20SlopePips": -10.8,
+      "sma20SlopePips": -10.9,
       "sma50": 1.154,
       "sma200": 1.1626,
-      "rsiWilder": 28.1,
-      "rsiScore": -20.2,
+      "rsiWilder": 27.7,
+      "rsiScore": -20.5,
       "atrPips": 50,
       "swingHigh20": 1.1656,
       "swingLow20": 1.1408,
@@ -234,15 +243,15 @@
     "conviction": "MODERATE",
     "rateRegimeFlag": "COMPRESSING_EUR_RELIEF",
     "entryType": "DEEP_MEAN_REVERSION",
-    "entryZone": "1.1492 - 1.1571 (Resistance retest at declining 20 SMA)",
-    "entryMid": 1.1532,
+    "entryZone": "1.149 - 1.1571 (Resistance retest at declining 20 SMA)",
+    "entryMid": 1.153,
     "stopLossPrice": 1.1731,
-    "stopDistancePips": 199,
-    "target1Price": 1.1234,
-    "target1Pips": 298,
+    "stopDistancePips": 201,
+    "target1Price": 1.1229,
+    "target1Pips": 301,
     "target1RR": "1 : 1.5",
-    "target2Price": 1.1035,
-    "target2Pips": 497,
+    "target2Price": 1.1028,
+    "target2Pips": 502,
     "target2RR": "1 : 2.5",
     "dailyAtrPips": 50,
     "holdingHorizon": "10 to 25 trading days",
@@ -250,7 +259,7 @@
       "accountEquity": 50000,
       "riskPercentage": 1,
       "dollarRisk": 500,
-      "stopDistancePips": 199,
+      "stopDistancePips": 201,
       "pipValuePerLot": 10,
       "recommendedLots": 0.25,
       "miniLots": 3
