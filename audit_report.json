@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-23T12:01:28.743Z",
+  "timestamp": "2026-09-23T12:08:32.220Z",
   "config": {
     "accountEquity": 50000,
     "maxRiskPerTradePct": 0.01,
@@ -11,75 +11,172 @@
     "convictionThreshold": 30,
     "cacheTtlMs": 300000
   },
-  "compositeScore": -52.3,
+  "status": "SUCCESS",
+  "sourceHealth": [
+    {
+      "source": "NY_Fed_Reference_Rates",
+      "status": "OK",
+      "latencyMs": 919
+    },
+    {
+      "source": "Brent_Crude",
+      "status": "OK",
+      "latencyMs": 1183
+    },
+    {
+      "source": "VIX_Index",
+      "status": "OK",
+      "latencyMs": 1213
+    },
+    {
+      "source": "US_Dollar_Index",
+      "status": "OK",
+      "latencyMs": 1241
+    },
+    {
+      "source": "Yahoo_EURUSD_Chart",
+      "status": "OK",
+      "latencyMs": 1235
+    },
+    {
+      "source": "US10Y_Yield",
+      "status": "OK",
+      "latencyMs": 1335
+    },
+    {
+      "source": "ECB_Deposit_Rate",
+      "status": "OK",
+      "latencyMs": 704
+    }
+  ],
+  "compositeScore": -36.6,
   "verdict": "SELL EUR/USD (Short on Pullback)",
+  "weightsApplied": {
+    "macro": 0.6,
+    "surprise": 0.2,
+    "technical": 0.2
+  },
   "layers": {
     "macro": {
-      "score": -53,
+      "score": -32.7,
       "bias": "STRONG_USD",
       "factors": [
         {
-          "name": "Monetary Policy & Rate Differential",
-          "weight": 30,
-          "rawReading": "Fed (5.25%) - ECB (2.5%) = +2.75% spread",
-          "normalizedScore": -0.762,
-          "weightedScore": -22.86,
-          "rationale": "Continuous carry advantage based on dynamic central bank rate divergence."
+          "name": "Central Bank Rate Differential",
+          "weight": 35,
+          "rawReading": "Fed (3.88% via NY Fed (Effective Federal Funds Rate)) - ECB (2.50%) = +1.38%",
+          "normalizedScore": -0.129,
+          "weightedScore": -4.52,
+          "rationale": "Live rate spread carry advantage and 30-day differential regime."
         },
         {
-          "name": "US 10Y Sovereign Yield Momentum",
+          "name": "Expected Yield Path Divergence (10Y Yield)",
           "weight": 25,
           "rawReading": "4.963% (30d z-score: 1.41)",
-          "normalizedScore": -0.755,
-          "weightedScore": -18.88,
-          "rationale": "Z-score of US 10-Year Treasury Yield vs 30-day baseline."
+          "normalizedScore": -0.784,
+          "weightedScore": -19.6,
+          "rationale": "Long-term market-implied rate path and sovereign bond spread."
         },
         {
           "name": "European Energy Terms-of-Trade (Brent)",
-          "weight": 20,
-          "rawReading": "$96.19 (30d z-score: 0.02)",
-          "normalizedScore": -0.011,
-          "weightedScore": -0.22,
-          "rationale": "Crude oil price pressure on European trade balance."
+          "weight": 18,
+          "rawReading": "$96.24 (30d z-score: 0.02)",
+          "normalizedScore": -0.016,
+          "weightedScore": -0.29,
+          "rationale": "Oil price pressure on Eurozone trade balance."
         },
         {
-          "name": "US Dollar Index (DXY) 30d Trend",
-          "weight": 15,
+          "name": "US Dollar Index (DXY) 30d Momentum",
+          "weight": 12,
           "rawReading": "100.87 (+2.1% 30d)",
           "normalizedScore": -0.939,
-          "weightedScore": -14.08,
-          "rationale": "Dollar basket momentum."
+          "weightedScore": -11.27,
+          "rationale": "Broad trade-weighted USD strength."
         },
         {
-          "name": "Volatility & Liquidity Sentiment (VIX)",
+          "name": "Volatility & Liquidity Regime (VIX)",
           "weight": 10,
           "rawReading": "VIX: 14.31 (Regime: Risk-On)",
           "normalizedScore": 0.3,
           "weightedScore": 3,
-          "rationale": "Risk appetite vs safe-haven dollar liquidity interaction."
+          "rationale": "Global risk appetite vs dollar liquidity hoarding."
         }
       ],
+      "rateMetrics": {
+        "liveFedRate": 3.88,
+        "liveFedSource": "NY Fed (Effective Federal Funds Rate)",
+        "liveEcbRate": 2.5,
+        "currentRateDifferential": 1.38,
+        "rateDifferential30dChange": -2.9,
+        "rateDifferentialRegime": "COMPRESSING_EUR_RELIEF"
+      },
       "rawMetrics": {
         "us10y": 4.9629998207092285,
-        "brent": 96.19000244140625,
-        "dxyChange": 2.1,
-        "ecbDepositRate": 2.5,
-        "fedFundsRate": 5.25
+        "brent": 96.23999786376953,
+        "dxyChange": 2.1
       }
     },
     "surprise": {
-      "score": -12,
-      "status": "CONSENSUS_IN_LINE",
+      "score": -2,
+      "status": "CONSENSUS_BALANCED",
       "evidence": [
         {
           "headline": "Breaking: US Nonfarm Payrolls rise by 57K in June vs. 110K expected",
           "snippet": "Nonfarm Payrolls (NFP) in the United States (US) rose by 57K in June, the US Bureau of Labor Statistics (BLS) reported on Thursday.",
-          "sentimentImpact": -12
+          "date": "Jul 2, 2026",
+          "scoreContribution": -12,
+          "matchedTokens": [
+            "rose"
+          ],
+          "isNegated": false,
+          "recencyWeight": 1.2
         },
         {
           "headline": "How the Jobs Report Moves Gold and Silver: The Five-Step Chain Behind Every Move",
           "snippet": "Gold and silver prices react inversely to the U.S. jobs report. Learn the transmission chain — NFP → real yields → dollar → metals — and...",
-          "sentimentImpact": 0
+          "date": "Jul 7, 2026",
+          "scoreContribution": 0,
+          "matchedTokens": [],
+          "isNegated": false,
+          "recencyWeight": 1.2
+        },
+        {
+          "headline": "NFP Preview: Benchmark revisions, fate of the March rate cut & implications for the DXY and Dow Jones",
+          "snippet": "The high-stakes January 2026 Non-Farm Payrolls (NFP) report, now set for release on February 11, 2026, has a consensus forecast of +70,000...",
+          "date": "Feb 9, 2026",
+          "scoreContribution": 0,
+          "matchedTokens": [],
+          "isNegated": false,
+          "recencyWeight": 1.2
+        },
+        {
+          "headline": "Gasoline likely to boost US consumer prices in August",
+          "snippet": "U.S. consumer prices likely accelerated in August as the cost of gasoline rebounded after two straight monthly declines,...",
+          "date": "2 weeks ago",
+          "scoreContribution": 10,
+          "matchedTokens": [
+            "rebounded"
+          ],
+          "isNegated": false,
+          "recencyWeight": 1
+        },
+        {
+          "headline": "Why Economists Expect Biggest CPI Drop in Years While Core Inflation Remains Sticky",
+          "snippet": "Gas prices will be the driver, but economists will be watching other key areas for clues about the underlying inflation trend.",
+          "date": "Jul 13, 2026",
+          "scoreContribution": 0,
+          "matchedTokens": [],
+          "isNegated": false,
+          "recencyWeight": 1.2
+        },
+        {
+          "headline": "Core inflation hit an annual rate of 3.3% in April, as expected, Fed’s preferred gauge shows",
+          "snippet": "The PCE price index for April was expected to show an annual inflation rate of 3.8% for all items and 3.3% for core.",
+          "date": "May 28, 2026",
+          "scoreContribution": 0,
+          "matchedTokens": [],
+          "isNegated": false,
+          "recencyWeight": 1.2
         }
       ],
       "tokensDetected": {
@@ -87,17 +184,21 @@
           "rose"
         ],
         "usBearish": [],
-        "euBullish": [],
+        "euBullish": [
+          "rebounded"
+        ],
         "euBearish": []
       }
     },
     "technical": {
-      "score": -90.5,
-      "currentPrice": 1.1416,
+      "score": -82.7,
+      "currentPrice": 1.1414,
       "sma20": 1.1571,
+      "sma20SlopePips": -10.8,
       "sma50": 1.154,
       "sma200": 1.1626,
-      "rsiWilder": 28.3,
+      "rsiWilder": 28.2,
+      "rsiScore": -20.1,
       "atrPips": 50,
       "swingHigh20": 1.1656,
       "swingLow20": 1.1408,
@@ -108,15 +209,17 @@
     "regime": "BEARISH",
     "action": "SELL EUR/USD (Short on Pullback)",
     "conviction": "MODERATE",
-    "entryZone": "1.1478 - 1.1571 (Mean Reversion into declining 20-day SMA)",
-    "entryMid": 1.1524,
+    "rateRegimeFlag": "COMPRESSING_EUR_RELIEF",
+    "entryType": "DEEP_MEAN_REVERSION",
+    "entryZone": "1.1492 - 1.1571 (Resistance retest at declining 20 SMA)",
+    "entryMid": 1.1532,
     "stopLossPrice": 1.1731,
-    "stopDistancePips": 207,
-    "target1Price": 1.1214,
-    "target1Pips": 310,
+    "stopDistancePips": 199,
+    "target1Price": 1.1234,
+    "target1Pips": 298,
     "target1RR": "1 : 1.5",
-    "target2Price": 1.1007,
-    "target2Pips": 517,
+    "target2Price": 1.1035,
+    "target2Pips": 497,
     "target2RR": "1 : 2.5",
     "dailyAtrPips": 50,
     "holdingHorizon": "10 to 25 trading days",
@@ -124,10 +227,10 @@
       "accountEquity": 50000,
       "riskPercentage": 1,
       "dollarRisk": 500,
-      "stopDistancePips": 207,
+      "stopDistancePips": 199,
       "pipValuePerLot": 10,
-      "recommendedLots": 0.24,
-      "miniLots": 2
+      "recommendedLots": 0.25,
+      "miniLots": 3
     }
   }
 }
