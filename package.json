@@ -2,9 +2,9 @@
   "name": "new-folder",
   "version": "1.0.0",
   "description": "",
-  "main": "eurusd_full_system.ts",
+  "main": "src/index.ts",
   "scripts": {
-    "start": "bun run eurusd_full_system.ts",
+    "start": "bun run src/index.ts",
     "build": "tsc"
   },
   "keywords": [],
