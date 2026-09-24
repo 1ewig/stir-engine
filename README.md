@@ -24,12 +24,12 @@ The engine synthesizes market reality across four core pillars:
                                      │
                                      ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                       MULTI-LAYER SCORING MATRIX                        │
+│                    DYNAMIC MULTI-CATEGORY SCORING MATRIX                │
 │                                                                         │
-│  Layer 1: Sovereign Yields, Real Rates & Energy ToT        [55% Weight] │
-│  Layer 2: CFTC CoT Speculative Flow & Squeeze Risk         [25% Weight] │
-│  Layer 3: Live News Sentiment & Economic Calendar          [20% Weight] │
-│  Layer 4: Technical Structure & Asymmetric Invalidation    [ 0% Default]│
+│  1. Macro Fundamentals & Sovereign Yields                  [55% Weight] │
+│  2. Institutional Positioning & Flow (CFTC CoT)            [25% Weight] │
+│  3. News Sentiment & Catalyst Calendar (TinyFish)          [20% Weight] │
+│  4. Market Structure & Trade Geometry                      [ 0% Default]│
 └────────────────────────────────────┬────────────────────────────────────┘
                                      │
                                      ▼
@@ -130,16 +130,16 @@ When you run the engine, you will see a structured real-time audit:
 
 ```text
 --------------------------------------------------------------------------------
-                    DYNAMIC MULTI-LAYER SCORING MATRIX                         
+                  DYNAMIC MULTI-CATEGORY SCORING MATRIX                         
 --------------------------------------------------------------------------------
-┌────────────────────────────────────────────────┬──────────────────────┬────────┬──────────────┬─────────────────────────────────────────────────────────────────────────────────────┐
-│ Layer                                          │ Score (-100 to +100) │ Weight │ Weighted Pts │ Continuous Metric                                                                   │
-├────────────────────────────────────────────────┼──────────────────────┼────────┼──────────────┼─────────────────────────────────────────────────────────────────────────────────────┤
-│ Layer 1: Sovereign Yields, Real Rates & Energy │ -49.8                │ 55%    │ -27.4        │ 2Y: +1.57% | 10Y Real TIPS: 2.63% | TTF Gas: €73.9/MWh                              │
-│ Layer 2: CFTC CoT Flow Divergence              │ +50.0                │ 25%    │ +12.5        │ Index: 18% (EXTREME_DIVERGENCE_REVERSAL) | 4w Net: +9,359 | Sizing: 1x              │
-│ Layer 3: News Flow & Economic Calendar         │ -38.0                │ 20%    │ -7.6         │ Bias: USD_BULLISH | Event Risk: NORMAL | Headlines: 10                              │
-│ Layer 4: Local Structure & Technicals          │ -56.0                │  0%    │  0.0         │ Trend: WEEKLY_BEARISH | RSI: 26.3 (Technicals Disabled from Scoring)                │
-└────────────────────────────────────────────────┴──────────────────────┴────────┴──────────────┴─────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────┬──────────────────────┬────────┬──────────────┬─────────────────────────────────────────────────────────────────────────────────────┐
+│ Category                             │ Score (-100 to +100) │ Weight │ Weighted Pts │ Continuous Metric                                                                   │
+├──────────────────────────────────────┼──────────────────────┼────────┼──────────────┼─────────────────────────────────────────────────────────────────────────────────────┤
+│ 1. Macro Fundamentals & Yields       │ -33.1                │ 55%    │ -18.2        │ 2Y: +1.49% | 10Y Real TIPS: 2.63% | TTF Gas: €73.9/MWh                              │
+│ 2. Institutional Positioning & Flow  │ +50.0                │ 25%    │ +12.5        │ Index: 18% (EXTREME_DIVERGENCE_REVERSAL) | 4w Net: +9,359 | Sizing: 1x              │
+│ 3. News Sentiment & Calendar         │ -38.0                │ 20%    │ -7.6         │ Bias: USD_BULLISH | Event Risk: NORMAL | Headlines: 10                              │
+│ 4. Market Structure & Geometry       │ -56.3                │  0%    │  0.0         │ Trend: WEEKLY_BEARISH | RSI: 25.2 (Technicals Disabled from Scoring)                │
+└──────────────────────────────────────┴──────────────────────┴────────┴──────────────┴─────────────────────────────────────────────────────────────────────────────────────┘
 
 >>> COMPOSITE TRADING SCORE: -22.5 / 100 (Negative = USD Advantage, Positive = EUR Advantage) <<<
 >>> REGIME & VERDICT:        STAND ASIDE / CAPITAL PRESERVATION <<<

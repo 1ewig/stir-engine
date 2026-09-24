@@ -31,7 +31,7 @@ const HAWKISH_EUR_KEYWORDS = [
  * Run Layer: Live News Sentiment & Economic Calendar Surprise / Event-Risk Engine
  */
 export async function runNewsAndCalendarEngine(): Promise<NewsAndCalendarResult> {
-  console.log("Analyzing News & Calendar Engine: Live TinyFish News Flow & Forex Calendar...");
+  console.log("Analyzing Pillar 3: News Sentiment & Catalyst Calendar (Live TinyFish News & Economic Events)...");
 
   const apiKey = process.env.tiny_fish_api || process.env.TINYFISH_API_KEY;
   const headlines: NewsItem[] = [];

@@ -13,7 +13,7 @@ import {
 // ============================================================================
 
 export async function runPositioningEngine(): Promise<PositioningLayerResult> {
-  console.log("Analyzing Layer 2: CFTC CoT Flow Divergence & Sizing Haircut Engine (25% weight)...");
+  console.log("Analyzing Pillar 2: Institutional Positioning & Flow (CFTC CoT Futures & Squeeze Risk)...");
 
   const rawRecords = await fetchCftcEuroPositioning();
 

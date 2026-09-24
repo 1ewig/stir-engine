@@ -153,7 +153,7 @@ export async function fetchHistoricalAsset(name: string, symbol: string): Promis
 }
 
 export async function runMacroEngine(): Promise<MacroLayerResult> {
-  console.log("Analyzing Layer 1: Sovereign Yield Velocity, Level Z-Scores, Policy Spreads & Energy Terms of Trade...");
+  console.log("Analyzing Pillar 1: Macro Fundamentals & Yields (Sovereign Spreads, Policy Rates, TIPS & Energy)...");
 
   const [liveRates, us2ySeries, de2ySeries, us10ySeries, de10ySeries, brent, vix, us10yTipsSeries, us10yBreakevenVal, dutchTtfGasVal] = await Promise.all([
     fetchLivePolicyRates(),

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-24T14:10:40.952Z",
+  "timestamp": "2026-09-24T14:15:44.085Z",
   "config": {
     "accountEquity": 50000,
     "maxRiskPerTradePct": 0.01,
@@ -15,79 +15,79 @@
   "status": "SUCCESS",
   "sourceHealth": [
     {
+      "source": "NY_Fed_Reference_Rates",
+      "status": "OK",
+      "latencyMs": 903
+    },
+    {
       "source": "FRED_T10YIE",
       "status": "OK",
-      "latencyMs": 770
-    },
-    {
-      "source": "ECB_AAA_Yield_10Y",
-      "status": "OK",
-      "latencyMs": 819
-    },
-    {
-      "source": "ECB_AAA_Yield_2Y",
-      "status": "OK",
-      "latencyMs": 848
-    },
-    {
-      "source": "TinyFish_News_Stream",
-      "status": "OK",
-      "latencyMs": 873
+      "latencyMs": 1075
     },
     {
       "source": "FRED_Series_DFII10",
       "status": "OK",
-      "latencyMs": 888
+      "latencyMs": 1085
     },
     {
-      "source": "FRED_DGS2",
+      "source": "ECB_AAA_Yield_10Y",
       "status": "OK",
-      "latencyMs": 898
-    },
-    {
-      "source": "Economic_Calendar",
-      "status": "OK",
-      "latencyMs": 25
-    },
-    {
-      "source": "NY_Fed_Reference_Rates",
-      "status": "OK",
-      "latencyMs": 936
-    },
-    {
-      "source": "FRED_DGS10",
-      "status": "OK",
-      "latencyMs": 1011
-    },
-    {
-      "source": "VIX_Index",
-      "status": "OK",
-      "latencyMs": 1102
-    },
-    {
-      "source": "Yahoo_EURUSD_Chart",
-      "status": "OK",
-      "latencyMs": 1104
-    },
-    {
-      "source": "ECB_Deposit_Rate",
-      "status": "OK",
-      "latencyMs": 205
-    },
-    {
-      "source": "Brent_Crude",
-      "status": "OK",
-      "latencyMs": 1145
+      "latencyMs": 1173
     },
     {
       "source": "Yahoo_Dutch_TTF_Gas",
       "status": "OK",
-      "latencyMs": 1237
+      "latencyMs": 1192
+    },
+    {
+      "source": "VIX_Index",
+      "status": "OK",
+      "latencyMs": 1202
+    },
+    {
+      "source": "ECB_AAA_Yield_2Y",
+      "status": "OK",
+      "latencyMs": 1231
+    },
+    {
+      "source": "Yahoo_EURUSD_Chart",
+      "status": "OK",
+      "latencyMs": 1236
+    },
+    {
+      "source": "TinyFish_News_Stream",
+      "status": "OK",
+      "latencyMs": 1268
+    },
+    {
+      "source": "Brent_Crude",
+      "status": "OK",
+      "latencyMs": 1274
+    },
+    {
+      "source": "FRED_DGS2",
+      "status": "OK",
+      "latencyMs": 1283
+    },
+    {
+      "source": "FRED_DGS10",
+      "status": "OK",
+      "latencyMs": 1405
+    },
+    {
+      "source": "Economic_Calendar",
+      "status": "OK",
+      "latencyMs": 160
+    },
+    {
+      "source": "ECB_Deposit_Rate",
+      "status": "OK",
+      "latencyMs": 746
     },
     {
       "source": "CFTC_COT_Euro_FX",
       "status": "OK",
-      "latencyMs": 2159
+      "latencyMs": 1817
     }
   ],
   "compositeScore": -13.3,
@@ -154,17 +154,17 @@
         {
           "name": "European Energy Terms-of-Trade (Brent & Dutch TTF Gas)",
           "weight": 8,
-          "rawReading": "TTF Gas: €74.0/MWh | Brent: $99.98",
-          "normalizedScore": -0.507,
-          "weightedScore": -4.06,
+          "rawReading": "TTF Gas: €74.0/MWh | Brent: $99.83",
+          "normalizedScore": -0.502,
+          "weightedScore": -4.02,
           "rationale": "European industrial energy import burden (Dutch TTF) vs US LNG export self-sufficiency."
         },
         {
           "name": "Global Risk Sentiment & VIX Velocity",
           "weight": 7,
-          "rawReading": "VIX: 15.71 (-2.0 5d)",
-          "normalizedScore": 0.243,
-          "weightedScore": 1.7,
+          "rawReading": "VIX: 15.66 (-2.0 5d)",
+          "normalizedScore": 0.245,
+          "weightedScore": 1.71,
           "rationale": "Global risk-off dollar liquidity hoarding vs risk-on pro-cyclical euro flows."
         }
       ],
@@ -194,8 +194,8 @@
         "de2y": 3.2183173377,
         "us10y": 4.96,
         "de10y": 3.5236609264,
-        "brent": 99.9800033569336,
-        "vix": 15.710000038146973
+        "brent": 99.83000183105469,
+        "vix": 15.65999984741211
       },
       "realYields": {
         "us10yTips": 2.63,
@@ -203,7 +203,7 @@
         "rollingZScore": 1.95
       },
       "energy": {
-        "brent": 99.9800033569336,
+        "brent": 99.83000183105469,
         "dutchTtfGas": 73.95
       }
     },
@@ -330,14 +330,14 @@
           "country": "EUR",
           "impact": "Medium",
           "date": "2026-09-21T11:00:00-04:00",
-          "hoursUntil": -71.2
+          "hoursUntil": -71.3
         },
         {
           "title": "ECB President Lagarde Speaks",
           "country": "EUR",
           "impact": "Medium",
           "date": "2026-09-22T07:00:00-04:00",
-          "hoursUntil": -51.2
+          "hoursUntil": -51.3
         },
         {
           "title": "President Trump Speaks",
@@ -353,7 +353,7 @@
           "date": "2026-09-23T03:15:00-04:00",
           "forecast": "50.9",
           "previous": "51.5",
-          "hoursUntil": -30.9
+          "hoursUntil": -31
         },
         {
           "title": "French Flash Services PMI",
@@ -362,7 +362,7 @@
           "date": "2026-09-23T03:15:00-04:00",
           "forecast": "48.3",
           "previous": "48.4",
-          "hoursUntil": -30.9
+          "hoursUntil": -31
         },
         {
           "title": "German Flash Manufacturing PMI",
@@ -371,7 +371,7 @@
           "date": "2026-09-23T03:30:00-04:00",
           "forecast": "54.1",
           "previous": "54.1",
-          "hoursUntil": -30.7
+          "hoursUntil": -30.8
         },
         {
           "title": "German Flash Services PMI",
@@ -380,7 +380,7 @@
           "date": "2026-09-23T03:30:00-04:00",
           "forecast": "49.9",
           "previous": "48.5",
-          "hoursUntil": -30.7
+          "hoursUntil": -30.8
         },
         {
           "title": "Unemployment Claims",
@@ -389,14 +389,14 @@
           "date": "2026-09-24T08:30:00-04:00",
           "forecast": "201K",
           "previous": "196K",
-          "hoursUntil": -1.7
+          "hoursUntil": -1.8
         },
         {
           "title": "President Trump Speaks",
           "country": "USD",
           "impact": "Medium",
           "date": "2026-09-24T10:15:00-04:00",
-          "hoursUntil": 0.1
+          "hoursUntil": 0
         },
         {
           "title": "Revised UoM Consumer Sentiment",
@@ -405,7 +405,7 @@
           "date": "2026-09-25T10:00:00-04:00",
           "forecast": "47.4",
           "previous": "47.8",
-          "hoursUntil": 23.8
+          "hoursUntil": 23.7
         },
         {
           "title": "Revised UoM Inflation Expectations",
@@ -413,7 +413,7 @@
           "impact": "Medium",
           "date": "2026-09-25T10:00:00-04:00",
           "previous": "4.6%",
-          "hoursUntil": 23.8
+          "hoursUntil": 23.7
         }
       ],
       "upcomingHighImpact": [],

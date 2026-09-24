@@ -12,7 +12,7 @@ import {
 // ============================================================================
 
 export async function runTechnicalEngine(): Promise<TechnicalLayerResult> {
-  console.log("Analyzing Layer 3: Local 5-Day Structure, Weekly Trend & Asymmetric Invalidation (25% weight)...");
+  console.log("Analyzing Pillar 4: Market Structure & Trade Geometry (5-Day Structure & Volatility Bands)...");
 
   const url = 'https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?range=1y&interval=1d';
   const { data } = await dataProvider.fetchWithRetry<any>('Yahoo_EURUSD_Chart', url);

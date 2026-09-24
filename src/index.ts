@@ -27,7 +27,7 @@ export * from './tradePlan';
 
 export async function executeFullSystem(config: SystemConfig = DEFAULT_CONFIG): Promise<SystemAuditReport> {
   console.log("================================================================================");
-  console.log("   EUR/USD INSTITUTIONAL 4-LAYER SWING TRADING ENGINE (DATA-DRIVEN TS)          ");
+  console.log("   EUR/USD 4-PILLAR INSTITUTIONAL QUANTITATIVE ENGINE (DATA-DRIVEN TS)          ");
   console.log("   Calibrated for 2-Week to 1-Month Legs (Macro / CoT / News & Events / Tech)   ");
   console.log("================================================================================\n");
 
@@ -74,28 +74,28 @@ export async function executeFullSystem(config: SystemConfig = DEFAULT_CONFIG): 
 
   // Render Table Breakdown
   console.log("\n--------------------------------------------------------------------------------");
-  console.log("                    DYNAMIC MULTI-LAYER SCORING MATRIX                         ");
+  console.log("                  DYNAMIC MULTI-CATEGORY SCORING MATRIX                         ");
   console.log("--------------------------------------------------------------------------------");
   console.table({
-    "Layer 1: Sovereign Yields, Real Rates & Energy": {
+    "1. Macro Fundamentals & Yields": {
       "Score (-100 to +100)": macro.score,
       "Weight": `${(w.macro * 100).toFixed(0)}%`,
       "Weighted Pts": (macro.score * w.macro).toFixed(1),
       "Continuous Metric": `2Y: +${macro.yieldSpreads.spread2y.toFixed(2)}% (z: ${macro.yieldSpreads.spread2yZScore.toFixed(1)}) | Policy: +${macro.rateMetrics.currentRateDifferential.toFixed(2)}% | TIPS: ${macro.realYields?.us10yTips.toFixed(2)}% (z: ${macro.realYields?.rollingZScore ?? 'N/A'})`
     },
-    "Layer 2: CFTC CoT Flow Divergence": {
+    "2. Institutional Positioning & Flow": {
       "Score (-100 to +100)": positioning.score,
       "Weight": `${(w.positioning * 100).toFixed(0)}%`,
       "Weighted Pts": (positioning.score * w.positioning).toFixed(1),
       "Continuous Metric": `Index: ${positioning.metrics.cotIndex52w}% (${positioning.metrics.regime}) | 4w Net: ${positioning.metrics.netPosition4wChange >= 0 ? '+' : ''}${positioning.metrics.netPosition4wChange.toLocaleString()} | Sizing: ${positioning.metrics.sizingMultiplier}x`
     },
-    "Layer 3: News Flow & Economic Calendar": {
+    "3. News Sentiment & Catalyst Calendar": {
       "Score (-100 to +100)": news.score,
       "Weight": `${(newsWeight * 100).toFixed(0)}%`,
       "Weighted Pts": (news.score * newsWeight).toFixed(1),
       "Continuous Metric": `Bias: ${news.bias} | Event Risk: ${news.eventRiskActive ? 'TRIGGERED' : 'NORMAL'} | Headlines: ${news.headlines.length}`
     },
-    "Layer 4: Local Structure & Technicals": {
+    "4. Market Structure & Trade Geometry": {
       "Score (-100 to +100)": tech.score,
       "Weight": `${(w.technical * 100).toFixed(0)}%`,
       "Weighted Pts": (tech.score * w.technical).toFixed(1),
