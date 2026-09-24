@@ -10,6 +10,10 @@ import {
   dataProvider,
   fetchLiveEconomicCalendar
 } from '../dataProvider';
+import {
+  classifyArticlesWithAI,
+  ArticleClassificationInput
+} from '../ai';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
@@ -141,85 +145,19 @@ export async function runNewsAndCalendarEngine(): Promise<NewsAndCalendarResult>
         }
       }
 
-      // --- Qualitative Semantic Classification via Groq (qwen/qwen3.8-27b) ---
-      const groqApiKey = process.env.GROQ_API_KEY;
-      let groqClassifications: Map<number, { policyBias: string; intensity: string; driver: string }> | null = null;
+      // --- Modular Qualitative Semantic Classification via AI Layer ---
+      const aiPayload: ArticleClassificationInput[] = topCandidates.map((item, idx) => {
+        const body = fetchedArticleTexts[item.url] || '';
+        const combinedContext = `${item.title}. ${item.snippet} ${body.slice(0, 500)}`.trim();
+        return {
+          id: idx + 1,
+          title: item.title,
+          source: item.publisher || item.site_name || 'Web',
+          content: combinedContext
+        };
+      });
 
-      if (groqApiKey && topCandidates.length > 0) {
-        try {
-          const payload = topCandidates.map((item, idx) => {
-            const body = fetchedArticleTexts[item.url] || '';
-            const combinedContext = `${item.title}. ${item.snippet} ${body.slice(0, 500)}`.trim();
-            return {
-              id: idx + 1,
-              title: item.title,
-              source: item.publisher || item.site_name || 'Web',
-              content: combinedContext
-            };
-          });
-
-          const systemPrompt = `You are an elite FX macro policy analyst. Your role is strictly qualitative semantic classification.
-DO NOT calculate scores, math, or arithmetic.
-For each article, determine:
-- policyBias: "HAWKISH_USD" | "DOVISH_USD" | "HAWKISH_EUR" | "DOVISH_EUR" | "NEUTRAL"
-- intensity: "HIGH" | "MEDIUM" | "LOW"
-- driver: Brief 3-8 word summary of the macro catalyst
-
-Guidelines:
-- Strong US data / sticky US inflation / delay of Fed cuts = HAWKISH_USD (Bearish EUR/USD)
-- Weaker US data / rising Fed rate cut bets = DOVISH_USD (Bullish EUR/USD)
-- Sticky Eurozone inflation / ECB hiking / ECB delaying rate cuts = HAWKISH_EUR (Bullish EUR/USD)
-- Eurozone slowdown / ECB cutting rates = DOVISH_EUR (Bearish EUR/USD)
-- Watch out for negations ("Fed not expected to hike" -> NEUTRAL)
-
-Respond ONLY with valid JSON:
-{
-  "classifications": [
-    { "id": number, "policyBias": string, "intensity": string, "driver": string }
-  ]
-}`;
-
-          const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${groqApiKey}`,
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              model: "qwen/qwen3.8-27b",
-              messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: JSON.stringify(payload) }
-              ],
-              response_format: { type: "json_object" },
-              temperature: 0.1,
-              max_tokens: 700
-            }),
-            signal: AbortSignal.timeout(4000)
-          });
-
-          if (groqRes.ok) {
-            const groqData = await groqRes.json();
-            const parsed = JSON.parse(groqData.choices?.[0]?.message?.content || '{}');
-            if (Array.isArray(parsed.classifications)) {
-              groqClassifications = new Map();
-              for (const c of parsed.classifications) {
-                if (typeof c.id === 'number' && c.policyBias) {
-                  groqClassifications.set(c.id, {
-                    policyBias: c.policyBias,
-                    intensity: c.intensity || 'MEDIUM',
-                    driver: c.driver || ''
-                  });
-                }
-              }
-            }
-          } else {
-            console.warn(`[News Engine] Groq returned HTTP ${groqRes.status}. Using dictionary fallback.`);
-          }
-        } catch (groqErr: any) {
-          console.warn(`[News Engine] Groq semantic analysis skipped (${groqErr?.message || 'timeout'}). Using dictionary fallback.`);
-        }
-      }
+      const aiClassifications = await classifyArticlesWithAI(aiPayload);
 
       // --- Pure Deterministic TypeScript Math Engine ---
       const INTENSITY_WEIGHTS: Record<string, number> = {
@@ -245,14 +183,14 @@ Respond ONLY with valid JSON:
         let itemScore = 0;
         let driverTag = '';
 
-        const groqMatch = groqClassifications?.get(idx + 1);
+        const aiMatch = aiClassifications?.get(idx + 1);
 
-        if (groqMatch) {
+        if (aiMatch) {
           // Deterministic mathematical calculation from qualitative classification
-          const dir = DIRECTION_SIGNS[groqMatch.policyBias] ?? 0.0;
-          const mag = INTENSITY_WEIGHTS[groqMatch.intensity] ?? 0.5;
+          const dir = DIRECTION_SIGNS[aiMatch.policyBias] ?? 0.0;
+          const mag = INTENSITY_WEIGHTS[aiMatch.intensity] ?? 0.5;
           itemScore = parseFloat((dir * mag).toFixed(2));
-          driverTag = groqMatch.driver ? ` [${groqMatch.driver}]` : '';
+          driverTag = aiMatch.driver ? ` [${aiMatch.driver}]` : '';
         } else {
           // Zero-downtime Keyword Dictionary Fallback
           let usdHits = 0;

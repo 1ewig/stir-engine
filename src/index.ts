@@ -20,6 +20,7 @@ export * from './layers/positioning';
 export * from './layers/technical';
 export * from './layers/news';
 export * from './tradePlan';
+export * from './ai';
 
 // ============================================================================
 // MASTER EXECUTION & STRUCTURED AUDIT TRAIL
