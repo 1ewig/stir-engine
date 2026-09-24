@@ -13,22 +13,37 @@ import {
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
-// Institutional sentiment dictionaries for USD and EUR
+// Top institutional financial domains
+const INSTITUTIONAL_NEWS_DOMAINS = 'reuters.com,bloomberg.com,ft.com,forexlive.com,fxstreet.com,marketwatch.com,cnbc.com,investing.com,wsj.com';
+
+// Enhanced Institutional sentiment dictionaries for USD and EUR
 const HAWKISH_USD_KEYWORDS = [
   'bearish eur', 'fed outlook', 'fed hawkish', 'rate hike', 'dollar strength',
   'falls below', 'pressure', 'under pressure', 'strong us', 'dollar gains',
   'yields surge', 'us resilient', 'inflation high', 'fed hold', 'ecb cut',
-  'rate cut bets fall', 'us outperformance', 'safe-haven'
+  'rate cut bets fall', 'us outperformance', 'safe-haven', 'dollar rallies',
+  'dollar index climbs', 'us labor market strong', 'higher for longer',
+  'fed pause bets fade', 'williams warns', 'powell hawkish', 'sticky inflation',
+  'us gdp beats', 'us pmi beats', 'fed hawkish stance', 'rate hikes likely'
 ];
 
 const HAWKISH_EUR_KEYWORDS = [
   'bullish eur', 'ecb hawkish', 'euro gains', 'euro rally', 'dollar weakness',
   'fed cut', 'rate cuts', 'dollar slips', 'euro surges', 'ecb hike',
-  'german recovery', 'europe rebounds', 'us slowing', 'euro resilience'
+  'german recovery', 'europe rebounds', 'us slowing', 'euro resilience',
+  'dollar slides', 'euro advances', 'euro holds recovery', 'dovish fed',
+  'rate cut expected', 'us recession fears', 'lagarde hawkish', 'ecb hiking',
+  'eurozone inflation sticky', 'ecb rate hike bets', 'euro area beats'
 ];
 
 /**
- * Run Layer: Live News Sentiment & Economic Calendar Surprise / Event-Risk Engine
+ * Run Pillar 3: News Sentiment & Catalyst Calendar (Live TinyFish News & Economic Events)
+ * Upgraded with:
+ * 1. 48-Hour Freshness Window (recency_minutes: 2880)
+ * 2. Institutional Domain Whitelisting (Reuters, Bloomberg, FT, FXStreet, etc.)
+ * 3. English Language Pinning (language: 'en')
+ * 4. Dual-Vector Macro Discovery (Fed/USD Vector & ECB/EUR Vector)
+ * 5. Deep Article Content Extraction (client.fetch.getContents) for top articles
  */
 export async function runNewsAndCalendarEngine(): Promise<NewsAndCalendarResult> {
   console.log("Analyzing Pillar 3: News Sentiment & Catalyst Calendar (Live TinyFish News & Economic Events)...");
@@ -37,37 +52,116 @@ export async function runNewsAndCalendarEngine(): Promise<NewsAndCalendarResult>
   const headlines: NewsItem[] = [];
   let newsSentimentScore = 0;
 
-  // 1. Fetch & analyze live news via TinyFish SDK
+  // 1. Fetch & analyze live institutional news via TinyFish SDK
   if (apiKey) {
     const startTime = Date.now();
     try {
       const client = new TinyFish({ apiKey });
-      const res = await client.search.query({
-        query: 'EUR USD forex economic news Federal Reserve ECB interest rates',
-        domain_type: 'news',
-        purpose: 'Analyze macroeconomic news sentiment and central bank policy for EUR/USD exchange rate'
-      });
 
-      const rawResults = res.results || [];
+      // Run targeted Dual-Vector queries concurrently:
+      // Vector A: Fed & US Interest Rate Expectations
+      // Vector B: ECB & Eurozone Monetary & Growth Dynamics
+      const [fedSearch, ecbSearch] = await Promise.all([
+        client.search.query({
+          query: 'Federal Reserve interest rates FOMC inflation US Dollar yields',
+          domain_type: 'news',
+          language: 'en',
+          recency_minutes: 2880, // strictly last 48 hours
+          include_domains: INSTITUTIONAL_NEWS_DOMAINS,
+          purpose: 'Analyze Federal Reserve monetary policy, US rate expectations, and inflation momentum for EUR/USD swing trading'
+        }).catch(() => null),
+        client.search.query({
+          query: 'European Central Bank ECB interest rates Eurozone economy Germany inflation',
+          domain_type: 'news',
+          language: 'en',
+          recency_minutes: 2880, // strictly last 48 hours
+          include_domains: INSTITUTIONAL_NEWS_DOMAINS,
+          purpose: 'Analyze ECB monetary policy stance, Eurozone economic growth, and euro currency momentum'
+        }).catch(() => null)
+      ]);
+
+      const candidateResults: any[] = [
+        ...(fedSearch?.results || []),
+        ...(ecbSearch?.results || [])
+      ];
+
+      // Fallback: If domain-restricted search yielded < 3 articles, run open news search
+      if (candidateResults.length < 3) {
+        const broadSearch = await client.search.query({
+          query: 'EUR USD forex economic news Federal Reserve ECB interest rates',
+          domain_type: 'news',
+          language: 'en',
+          recency_minutes: 2880,
+          purpose: 'Analyze macroeconomic news sentiment and central bank policy for EUR/USD exchange rate'
+        }).catch(() => null);
+
+        if (broadSearch?.results) {
+          candidateResults.push(...broadSearch.results);
+        }
+      }
+
+      // Deduplicate results by URL
+      const seenUrls = new Set<string>();
+      const uniqueResults: any[] = [];
+      for (const item of candidateResults) {
+        if (item.url && !seenUrls.has(item.url)) {
+          seenUrls.add(item.url);
+          uniqueResults.push(item);
+        }
+      }
+
+      const topCandidates = uniqueResults.slice(0, 8);
+
+      // Deep Article Content Extraction:
+      // Fetch full clean text for top 3 URLs using TinyFish fetch extraction
+      const urlsToFetch = topCandidates.slice(0, 3).map(c => c.url).filter(Boolean);
+      let fetchedArticleTexts: Record<string, string> = {};
+
+      if (urlsToFetch.length > 0) {
+        try {
+          const fetchPromise = client.fetch.getContents({
+            urls: urlsToFetch,
+            format: 'markdown',
+            purpose: 'Extract macroeconomic news article body for institutional FX sentiment analysis'
+          });
+
+          // Timeout guard: Allow max 4.5s for article body fetch
+          const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 4500));
+          const fetchRes = await Promise.race([fetchPromise, timeoutPromise]);
+
+          if (fetchRes && fetchRes.results) {
+            for (const r of fetchRes.results) {
+              if (r.url && typeof r.text === 'string') {
+                fetchedArticleTexts[r.url] = r.text;
+              }
+            }
+          }
+        } catch (fetchErr: any) {
+          console.warn(`[News Engine] TinyFish body fetch skipped (${fetchErr?.message || 'timeout'}). Relying on snippets.`);
+        }
+      }
+
       let totalItemScore = 0;
 
-      for (const item of rawResults.slice(0, 10)) {
-        const text = `${item.title} ${item.snippet}`.toLowerCase();
+      for (const item of topCandidates) {
+        const fullArticleText = fetchedArticleTexts[item.url] || '';
+        const textToAnalyze = `${item.title} ${item.snippet} ${fullArticleText.slice(0, 2000)}`.toLowerCase();
+
         let itemScore = 0;
         let usdHits = 0;
         let eurHits = 0;
 
         for (const kw of HAWKISH_USD_KEYWORDS) {
-          if (text.includes(kw)) usdHits++;
+          if (textToAnalyze.includes(kw)) usdHits++;
         }
         for (const kw of HAWKISH_EUR_KEYWORDS) {
-          if (text.includes(kw)) eurHits++;
+          if (textToAnalyze.includes(kw)) eurHits++;
         }
 
         if (usdHits > eurHits) {
-          itemScore = -Math.min(1.0, 0.4 + (usdHits * 0.2));
+          itemScore = -Math.min(1.0, 0.4 + (usdHits * 0.15));
         } else if (eurHits > usdHits) {
-          itemScore = Math.min(1.0, 0.4 + (eurHits * 0.2));
+          itemScore = Math.min(1.0, 0.4 + (eurHits * 0.15));
         }
 
         headlines.push({

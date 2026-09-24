@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-24T14:15:44.085Z",
+  "timestamp": "2026-09-24T14:25:13.611Z",
   "config": {
     "accountEquity": 50000,
     "maxRiskPerTradePct": 0.01,
@@ -15,82 +15,86 @@
   "status": "SUCCESS",
   "sourceHealth": [
     {
-      "source": "NY_Fed_Reference_Rates",
+      "source": "Brent_Crude",
       "status": "OK",
-      "latencyMs": 903
-    },
-    {
-      "source": "FRED_T10YIE",
-      "status": "OK",
-      "latencyMs": 1075
-    },
-    {
-      "source": "FRED_Series_DFII10",
-      "status": "OK",
-      "latencyMs": 1085
-    },
-    {
-      "source": "ECB_AAA_Yield_10Y",
-      "status": "OK",
-      "latencyMs": 1173
-    },
-    {
-      "source": "Yahoo_Dutch_TTF_Gas",
-      "status": "OK",
-      "latencyMs": 1192
-    },
-    {
-      "source": "VIX_Index",
-      "status": "OK",
-      "latencyMs": 1202
-    },
-    {
-      "source": "ECB_AAA_Yield_2Y",
-      "status": "OK",
-      "latencyMs": 1231
+      "latencyMs": 1242
     },
     {
       "source": "Yahoo_EURUSD_Chart",
       "status": "OK",
-      "latencyMs": 1236
+      "latencyMs": 1241
     },
     {
-      "source": "TinyFish_News_Stream",
+      "source": "VIX_Index",
       "status": "OK",
-      "latencyMs": 1268
+      "latencyMs": 1258
     },
     {
-      "source": "Brent_Crude",
+      "source": "Yahoo_Dutch_TTF_Gas",
       "status": "OK",
-      "latencyMs": 1274
+      "latencyMs": 1257
     },
     {
-      "source": "FRED_DGS2",
+      "source": "NY_Fed_Reference_Rates",
       "status": "OK",
-      "latencyMs": 1283
+      "latencyMs": 1261
     },
     {
-      "source": "FRED_DGS10",
+      "source": "ECB_AAA_Yield_10Y",
       "status": "OK",
-      "latencyMs": 1405
+      "latencyMs": 1259
     },
     {
-      "source": "Economic_Calendar",
+      "source": "ECB_AAA_Yield_2Y",
       "status": "OK",
-      "latencyMs": 160
+      "latencyMs": 1259
     },
     {
       "source": "ECB_Deposit_Rate",
       "status": "OK",
-      "latencyMs": 746
+      "latencyMs": 284
     },
     {
       "source": "CFTC_COT_Euro_FX",
       "status": "OK",
-      "latencyMs": 1817
+      "latencyMs": 1843
+    },
+    {
+      "source": "FRED_Series_DFII10",
+      "status": "FALLBACK",
+      "latencyMs": 0,
+      "details": "Using series baseline"
+    },
+    {
+      "source": "FRED_T10YIE",
+      "status": "FALLBACK",
+      "latencyMs": 0,
+      "details": "Using benchmark fallback"
+    },
+    {
+      "source": "US_Yield_DGS2",
+      "status": "FALLBACK",
+      "latencyMs": 382,
+      "details": "Served via Yahoo Finance (^IRX)"
+    },
+    {
+      "source": "US_Yield_DGS10",
+      "status": "FALLBACK",
+      "latencyMs": 383,
+      "details": "Served via Yahoo Finance (^TNX)"
+    },
+    {
+      "source": "TinyFish_News_Stream",
+      "status": "OK",
+      "latencyMs": 8637
+    },
+    {
+      "source": "Economic_Calendar",
+      "status": "OK",
+      "latencyMs": 322
     }
   ],
-  "compositeScore": -13.3,
+  "compositeScore": -1,
   "verdict": "STAND ASIDE / CAPITAL PRESERVATION",
   "weightsApplied": {
     "macro": 0.55,
@@ -100,31 +104,31 @@
   },
   "layers": {
     "macro": {
-      "score": -33.1,
-      "bias": "STRONG_USD",
+      "score": -16.3,
+      "bias": "NEUTRAL",
       "factors": [
         {
           "name": "Fast 2Y Yield Spread Impulse (3-Day Delta)",
           "weight": 20,
-          "rawReading": "Spread: +1.49% | 3d Delta: +0.04%",
-          "normalizedScore": -0.432,
-          "weightedScore": -8.64,
+          "rawReading": "Spread: +0.81% | 3d Delta: +0.05%",
+          "normalizedScore": -0.563,
+          "weightedScore": -11.26,
           "rationale": "Captures immediate front-end rate repricing within 72 hours of catalysts."
         },
         {
           "name": "Medium 2Y Yield Spread Momentum (10-Day Delta)",
           "weight": 20,
-          "rawReading": "10d Delta: +0.08%",
-          "normalizedScore": -0.478,
-          "weightedScore": -9.56,
+          "rawReading": "10d Delta: -0.01%",
+          "normalizedScore": 0.1,
+          "weightedScore": 2,
           "rationale": "Confirms multi-week monetary policy divergence and swing momentum."
         },
         {
           "name": "2Y Spread Structural Level Advantage (90d Z-Score)",
           "weight": 15,
-          "rawReading": "Spread: +1.49% (z-score: -0.24)",
-          "normalizedScore": 0.2,
-          "weightedScore": 3,
+          "rawReading": "Spread: +0.81% (z-score: -1.21)",
+          "normalizedScore": 0.764,
+          "weightedScore": 11.46,
           "rationale": "Structural carry advantage: rewards extreme persistent yield spreads even when momentum pauses."
         },
         {
@@ -138,47 +142,47 @@
         {
           "name": "10Y Sovereign Yield Spread Momentum (10-Day Delta)",
           "weight": 10,
-          "rawReading": "Spread: +1.44% | 10d Delta: +0.06%",
-          "normalizedScore": -0.482,
-          "weightedScore": -4.82,
+          "rawReading": "Spread: +1.57% | 10d Delta: +0.16%",
+          "normalizedScore": -0.864,
+          "weightedScore": -8.64,
           "rationale": "Long-term economic growth divergence and sovereign bond term premium."
         },
         {
           "name": "10Y TIPS Real Yield Advantage (90d Rolling Z-Score)",
           "weight": 10,
-          "rawReading": "US TIPS: 2.63% (90d z-score: 1.95) | Breakeven: 2.35%",
-          "normalizedScore": -0.915,
-          "weightedScore": -9.15,
+          "rawReading": "US TIPS: 2.63% (90d z-score: 0.86) | Breakeven: 2.35%",
+          "normalizedScore": -0.597,
+          "weightedScore": -5.97,
           "rationale": "Real rate return differential dynamically normalized over 90 days against regime shifts."
         },
         {
           "name": "European Energy Terms-of-Trade (Brent & Dutch TTF Gas)",
           "weight": 8,
-          "rawReading": "TTF Gas: €74.0/MWh | Brent: $99.83",
-          "normalizedScore": -0.502,
-          "weightedScore": -4.02,
+          "rawReading": "TTF Gas: €74.0/MWh | Brent: $100.02",
+          "normalizedScore": -0.508,
+          "weightedScore": -4.06,
           "rationale": "European industrial energy import burden (Dutch TTF) vs US LNG export self-sufficiency."
         },
         {
           "name": "Global Risk Sentiment & VIX Velocity",
           "weight": 7,
-          "rawReading": "VIX: 15.66 (-2.0 5d)",
-          "normalizedScore": 0.245,
-          "weightedScore": 1.71,
+          "rawReading": "VIX: 15.58 (-2.1 5d)",
+          "normalizedScore": 0.249,
+          "weightedScore": 1.74,
           "rationale": "Global risk-off dollar liquidity hoarding vs risk-on pro-cyclical euro flows."
         }
       ],
       "yieldSpreads": {
-        "us2y": 4.71,
+        "us2y": 4.0320000648498535,
         "de2y": 3.2183173377,
-        "spread2y": 1.492,
-        "spread2yFastDelta3d": 0.037,
-        "spread2yMedDelta10d": 0.078,
-        "spread2yZScore": -0.2435092596745482,
-        "us10y": 4.96,
+        "spread2y": 0.814,
+        "spread2yFastDelta3d": 0.051,
+        "spread2yMedDelta10d": -0.015,
+        "spread2yZScore": -1.20709816679172,
+        "us10y": 5.091000080108643,
         "de10y": 3.5236609264,
-        "spread10y": 1.436,
-        "spread10yDelta10d": 0.063
+        "spread10y": 1.567,
+        "spread10yDelta10d": 0.157
       },
       "rateMetrics": {
         "liveFedRate": 3.88,
@@ -190,20 +194,20 @@
         "rateRegime": "WIDENING_USD_ADVANTAGE"
       },
       "rawMetrics": {
-        "us2y": 4.71,
+        "us2y": 4.0320000648498535,
         "de2y": 3.2183173377,
-        "us10y": 4.96,
+        "us10y": 5.091000080108643,
         "de10y": 3.5236609264,
-        "brent": 99.83000183105469,
-        "vix": 15.65999984741211
+        "brent": 100.0199966430664,
+        "vix": 15.579999923706055
       },
       "realYields": {
         "us10yTips": 2.63,
         "us10yBreakeven": 2.35,
-        "rollingZScore": 1.95
+        "rollingZScore": 0.86
       },
       "energy": {
-        "brent": 99.83000183105469,
+        "brent": 100.0199966430664,
         "dutchTtfGas": 73.95
       }
     },
@@ -230,98 +234,72 @@
       "rationale": "Bullish Short Squeeze Divergence: CoT Index is depressed (18%), and 4-week net flow is accumulating (+9,359 contracts). Elevated probability of short squeeze rally."
     },
     "news": {
-      "score": -38,
+      "score": -22.5,
       "bias": "USD_BULLISH",
       "headlines": [
         {
-          "title": "EUR/USD, Gold Forecast: Two trades to watch",
-          "source": "FOREX.com",
-          "url": "https://www.forex.com/en-us/news-and-analysis/eur-usd-gold-forecast-two-trades-to-watch-2026-09-23/?amp=true",
-          "date": "1 day ago",
+          "title": "Dollar Jumps to 8-Week High on Fed Rate-Hike Bets - WSJ",
+          "source": "www.wsj.com › Economy › Central Banking",
+          "url": "https://www.wsj.com/economy/central-banking/dollar-jumps-to-8-week-high-as-fed-rate-hike-bets-outweigh-lower-oil-prices-92e6cf72",
           "sentiment": "NEUTRAL",
           "score": 0,
-          "snippet": "EUR/USD has fallen to a 10-week low, down around 2.4% over the past month amid USD strength and despite stronger-than-expected Eurozone PMI..."
+          "snippet": ""
         },
         {
-          "title": "EUR/USD, Gold Forecast: Two trades to watch",
-          "source": "www.stonex.com",
-          "url": "https://www.stonex.com/en-gb/news-and-analysis/eur-usd-gold-forecast-two-trades-to-watch-2026-09-23/",
-          "date": "1 day ago",
-          "sentiment": "USD_BULLISH",
-          "score": -0.8,
-          "snippet": "EUR/USD falls to a 2-month low despite Eurozone growth picking up. Gold under pressure as a stronger USD offsets falling oil prices."
-        },
-        {
-          "title": "Euro slides as strong US PMI data lifts Fed rate hike bets",
-          "source": "tmgm.com",
-          "url": "https://www.tmgm.com/en-in/analysis/market-news/article/euro-slides-as-strong-us-pmi-data-lifts-fed-rate-hike-bets-202609231500",
-          "date": "22 hours ago",
-          "sentiment": "USD_BULLISH",
-          "score": -0.8,
-          "snippet": "EUR/USD extends its intraday decline on Wednesday as stronger-than-expected US business activity data reinforces expectations of another..."
-        },
-        {
-          "title": "Euro holds onto recovery on hopes of ECB rate hike",
-          "source": "Economies.com",
-          "url": "https://www.economies.com/forex/eur-usd-news/euro-holds-onto-recovery-on-hopes-of-ecb-rate-hike-49759",
-          "date": "2 days ago",
-          "sentiment": "USD_BULLISH",
-          "score": -0.6,
-          "snippet": "The euro rose against a basket of global currencies in European trading on Tuesday, holding onto its recovery from recent lows against the..."
-        },
-        {
-          "title": "EUR/USD Falls Below 1.1450 on Fed Outlook",
-          "source": "Markets.com",
-          "url": "https://www.markets.com/news/eur-usd-falls-below-1-1450-fed-ecb-policy",
-          "date": "1 day ago",
-          "sentiment": "USD_BULLISH",
-          "score": -1,
-          "snippet": "EUR/USD slips below 1.1450 as the Fed's rate outlook and weaker eurozone consumer confidence pressure the euro. Explore the Fed and ECB..."
-        },
-        {
-          "title": "EUR/USD Update: Will Fed Expectations Keep Pressure on the Euro?",
-          "source": "FOREX.com",
-          "url": "https://www.forex.com/ie/news-and-analysis/eur-usd-update-will-fed-expectations-keep-pressure-on-the-euro/",
-          "date": "1 day ago",
-          "sentiment": "USD_BULLISH",
-          "score": -0.6,
-          "snippet": "EUR/USD falls nearly 0.6% over three sessions, as expectations of a more restrictive Fed support the U.S. dollar and limit the euro's..."
-        },
-        {
-          "title": "Weak Dollar Backs Near-Term Upside in EUR/USD, Say Analysts",
-          "source": "CryptoRank",
-          "url": "https://cryptorank.io/news/feed/e5937-weak-dollar-backs-eur-usd-upside",
-          "date": "1 month ago",
+          "title": "Fed Rate-Hike Expectations Strengthen Dollar, Lift Treasury Yields",
+          "source": "www.wsj.com › Markets & Finance › Currencies",
+          "url": "https://www.wsj.com/finance/currencies/asian-currencies-broadly-weaken-as-treasury-yields-surge-d5c5d1cf",
           "sentiment": "NEUTRAL",
           "score": 0,
-          "snippet": "A softer US dollar driven by markets pricing a Fed pivot versus a relatively hawkish ECB has supported near-term EUR/USD upside,..."
+          "snippet": ""
         },
         {
-          "title": "EURUSD Forecast & Predictions for 2026, 2027–2028, and Beyond until 2030",
-          "source": "LiteFinance",
-          "url": "https://www.litefinance.org/blog/analysts-opinions/eurusd-forecast-and-price-prediction/",
-          "date": "1 week ago",
-          "sentiment": "NEUTRAL",
-          "score": 0,
-          "snippet": "The EURUSD currency pair is one of the most popular and traded pairs in the global currency market. Its rate reflects shifts in economic..."
+          "title": "Fed's Barr Says More Rate Hikes Likely Needed to Return Inflation ...",
+          "source": "www.wsj.com › pro › Central Banking › Central Banks",
+          "url": "https://www.wsj.com/pro/central-banking/feds-barr-says-more-rate-hikes-likely-needed-to-return-inflation-to-target-c165cb26",
+          "sentiment": "USD_BULLISH",
+          "score": -0.7,
+          "snippet": ""
         },
         {
-          "title": "Europe’s Energy Shock Is Changing the ECB Outlook — What Does It Mean for EUR/USD?",
-          "source": "Mitrade",
-          "url": "https://www.mitrade.com/au/insights/forex/forex-basics/eur-usd-analysis",
-          "date": "2 months ago",
-          "sentiment": "NEUTRAL",
-          "score": 0,
-          "snippet": "Europe's latest energy shock is reshaping expectations for the European Central Bank, with potential implications for inflation, interest..."
+          "title": "Fed May Need More Interest Rate Hikes to Curb Inflation, Says Barkin",
+          "source": "www.wsj.com › Economy › Central Banking",
+          "url": "https://www.wsj.com/economy/central-banking/feds-barkin-says-one-rate-hike-may-not-be-enough-to-tame-inflation-dd338c6c",
+          "sentiment": "USD_BULLISH",
+          "score": -0.55,
+          "snippet": ""
         },
         {
-          "title": "EUR/USD Price Forecast: Strengthens to near 1.1500, while bearish bias persists below 100-day SMA",
-          "source": "www.tmgm.com",
-          "url": "https://www.tmgm.com/en-in/analysis/market-news/article/eur-usd-price-forecast-strengthens-to-near-11500-while-bearish-bias-persists-below-100-day-sma-202609180447",
-          "date": "6 days ago",
+          "title": "Dollar More Attractive After Fed Defies Trump With Rate Rise - WSJ",
+          "source": "www.wsj.com › Markets & Finance › Currencies",
+          "url": "https://www.wsj.com/finance/currencies/asian-currencies-consolidate-amid-falling-oil-prices-e3c4d4d6",
           "sentiment": "NEUTRAL",
           "score": 0,
-          "snippet": "The EUR/USD pair trades in positive territory around 1.1490 during the early European session on Friday, bolstered by a weaker US Dollar..."
+          "snippet": ""
+        },
+        {
+          "title": "US Dollar Above 101: Is US Economic Strength Driving Greenback ...",
+          "source": "www.investing.com › analysis › us-dollar-above-101-is-us-economic-stren...",
+          "url": "https://www.investing.com/analysis/us-dollar-above-101-is-us-economic-strength-driving-greenback-higher-200688281",
+          "sentiment": "NEUTRAL",
+          "score": 0,
+          "snippet": ""
+        },
+        {
+          "title": "Gold Under Fed Pressure: Can It Hold Above $4300? - Investing.com",
+          "source": "www.investing.com › analysis › gold-under-fed-pressure-can-it-hold-abov...",
+          "url": "https://www.investing.com/analysis/gold-under-fed-pressure-can-it-hold-above-4300-200688217",
+          "sentiment": "USD_BULLISH",
+          "score": -0.55,
+          "snippet": ""
+        },
+        {
+          "title": "WSJ Dollar Index Falls 0.10% to 96.07",
+          "source": "www.wsj.com › Markets & Finance › Currencies",
+          "url": "https://www.wsj.com/finance/currencies/global-tightening-could-cap-dollars-fed-boost-fe1f509c",
+          "sentiment": "NEUTRAL",
+          "score": 0,
+          "snippet": ""
         }
       ],
       "calendarEvents": [
@@ -330,21 +308,21 @@
           "country": "EUR",
           "impact": "Medium",
           "date": "2026-09-21T11:00:00-04:00",
-          "hoursUntil": -71.3
+          "hoursUntil": -71.4
         },
         {
           "title": "ECB President Lagarde Speaks",
           "country": "EUR",
           "impact": "Medium",
           "date": "2026-09-22T07:00:00-04:00",
-          "hoursUntil": -51.3
+          "hoursUntil": -51.4
         },
         {
           "title": "President Trump Speaks",
           "country": "USD",
           "impact": "Medium",
           "date": "2026-09-22T09:55:00-04:00",
-          "hoursUntil": -48.3
+          "hoursUntil": -48.5
         },
         {
           "title": "French Flash Manufacturing PMI",
@@ -353,7 +331,7 @@
           "date": "2026-09-23T03:15:00-04:00",
           "forecast": "50.9",
           "previous": "51.5",
-          "hoursUntil": -31
+          "hoursUntil": -31.2
         },
         {
           "title": "French Flash Services PMI",
@@ -362,7 +340,7 @@
           "date": "2026-09-23T03:15:00-04:00",
           "forecast": "48.3",
           "previous": "48.4",
-          "hoursUntil": -31
+          "hoursUntil": -31.2
         },
         {
           "title": "German Flash Manufacturing PMI",
@@ -371,7 +349,7 @@
           "date": "2026-09-23T03:30:00-04:00",
           "forecast": "54.1",
           "previous": "54.1",
-          "hoursUntil": -30.8
+          "hoursUntil": -30.9
         },
         {
           "title": "German Flash Services PMI",
@@ -380,7 +358,7 @@
           "date": "2026-09-23T03:30:00-04:00",
           "forecast": "49.9",
           "previous": "48.5",
-          "hoursUntil": -30.8
+          "hoursUntil": -30.9
         },
         {
           "title": "Unemployment Claims",
@@ -389,14 +367,14 @@
           "date": "2026-09-24T08:30:00-04:00",
           "forecast": "201K",
           "previous": "196K",
-          "hoursUntil": -1.8
+          "hoursUntil": -1.9
         },
         {
           "title": "President Trump Speaks",
           "country": "USD",
           "impact": "Medium",
           "date": "2026-09-24T10:15:00-04:00",
-          "hoursUntil": 0
+          "hoursUntil": -0.2
         },
         {
           "title": "Revised UoM Consumer Sentiment",
@@ -405,7 +383,7 @@
           "date": "2026-09-25T10:00:00-04:00",
           "forecast": "47.4",
           "previous": "47.8",
-          "hoursUntil": 23.7
+          "hoursUntil": 23.6
         },
         {
           "title": "Revised UoM Inflation Expectations",
@@ -413,7 +391,7 @@
           "impact": "Medium",
           "date": "2026-09-25T10:00:00-04:00",
           "previous": "4.6%",
-          "hoursUntil": 23.7
+          "hoursUntil": 23.6
         }
       ],
       "upcomingHighImpact": [],
@@ -421,14 +399,14 @@
     },
     "technical": {
       "score": -56.3,
-      "currentPrice": 1.138,
+      "currentPrice": 1.1378,
       "weeklyTrend": "WEEKLY_BEARISH",
       "sma20w": 1.1541,
       "sma20": 1.1559,
       "sma20SlopePips": -11.2,
       "sma50": 1.1539,
       "sma200": 1.1625,
-      "rsiWilder": 25.2,
+      "rsiWilder": 25.1,
       "rsiScore": 12,
       "rsiExhaustionState": "OVERSOLD_EXHAUSTION",
       "atrPips": 53,
