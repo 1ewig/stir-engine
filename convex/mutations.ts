@@ -2,7 +2,7 @@ import { internalMutation, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 /**
- * Persist a complete SystemAuditReport into Convex
+ * Persist a complete SystemAuditReport into Convex with millisecond precision
  */
 export const saveAuditReport = internalMutation({
   args: {
@@ -11,10 +11,12 @@ export const saveAuditReport = internalMutation({
   handler: async (ctx, args) => {
     const r = args.report;
     const now = r.timestamp || new Date().toISOString();
+    const nowMs = new Date(now).getTime() || Date.now();
 
     // 1. Insert into audit_reports table
     const reportId = await ctx.db.insert("audit_reports", {
       timestamp: now,
+      timestampMs: nowMs,
       status: r.status,
       compositeScore: r.compositeScore,
       verdict: r.verdict,
@@ -40,6 +42,7 @@ export const saveAuditReport = internalMutation({
     const signalData = {
       key: "current",
       timestamp: now,
+      timestampMs: nowMs,
       compositeScore: r.compositeScore,
       verdict: r.verdict,
       regime: plan.regime || "NEUTRAL_RANGE",
@@ -81,6 +84,7 @@ export const saveAuditReport = internalMutation({
     if (macro && pos) {
       await ctx.db.insert("macro_indicators", {
         timestamp: now,
+        timestampMs: nowMs,
         spread2y: macro.yieldSpreads?.spread2y ?? 0,
         spread2yFastDelta3d: macro.yieldSpreads?.spread2yFastDelta3d ?? 0,
         spread2yMedDelta10d: macro.yieldSpreads?.spread2yMedDelta10d ?? 0,
@@ -143,5 +147,34 @@ export const saveAuditReport = internalMutation({
     }
 
     return { reportId };
+  }
+});
+
+/**
+ * Storage Hygiene: Prune full serialized audit reports older than maxAgeDays (default: 90 days).
+ * Keeps macro_indicators, latest_signal, and calendar tables indefinitely.
+ */
+export const pruneOldAuditReports = internalMutation({
+  args: {
+    maxAgeDays: v.optional(v.number())
+  },
+  handler: async (ctx, args) => {
+    const maxAgeDays = args.maxAgeDays ?? 90;
+    const cutoffMs = Date.now() - (maxAgeDays * 24 * 60 * 60 * 1000);
+
+    const staleAudits = await ctx.db
+      .query("audit_reports")
+      .withIndex("by_timestampMs", (q) => q.lt("timestampMs", cutoffMs))
+      .take(100);
+
+    for (const audit of staleAudits) {
+      await ctx.db.delete(audit._id);
+    }
+
+    if (staleAudits.length > 0) {
+      console.log(`[Storage Hygiene] Pruned ${staleAudits.length} audit records older than ${maxAgeDays} days.`);
+    }
+
+    return { prunedCount: staleAudits.length };
   }
 });

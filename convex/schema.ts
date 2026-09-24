@@ -5,6 +5,7 @@ export default defineSchema({
   // Full historical audit logs for every execution
   audit_reports: defineTable({
     timestamp: v.string(),
+    timestampMs: v.optional(v.number()), // Epoch millisecond timestamp for fast range queries
     status: v.string(), // 'SUCCESS' | 'CRITICAL_DATA_FAILURE'
     compositeScore: v.number(),
     verdict: v.string(),
@@ -32,12 +33,14 @@ export default defineSchema({
     abortReason: v.optional(v.string())
   })
     .index("by_timestamp", ["timestamp"])
+    .index("by_timestampMs", ["timestampMs"])
     .index("by_status", ["status"]),
 
-  // Fast single-document current market regime & execution state
+  // Fast single-document current market regime & execution state (singleton pattern)
   latest_signal: defineTable({
     key: v.string(), // constant "current" for singleton lookup
     timestamp: v.string(),
+    timestampMs: v.optional(v.number()),
     compositeScore: v.number(),
     verdict: v.string(),
     regime: v.string(),
@@ -67,9 +70,10 @@ export default defineSchema({
     reportId: v.optional(v.id("audit_reports"))
   }).index("by_key", ["key"]),
 
-  // Real-time macro indicator snapshots for quick charting
+  // Real-time macro indicator snapshots for quick charting (TradingView / Recharts)
   macro_indicators: defineTable({
     timestamp: v.string(),
+    timestampMs: v.optional(v.number()), // Epoch millisecond for chronological range slicing
     spread2y: v.number(),
     spread2yFastDelta3d: v.number(),
     spread2yMedDelta10d: v.number(),
@@ -85,7 +89,9 @@ export default defineSchema({
     cotIndex52w: v.number(),
     cotNet4wChange: v.number(),
     cotRegime: v.string()
-  }).index("by_timestamp", ["timestamp"]),
+  })
+    .index("by_timestamp", ["timestamp"])
+    .index("by_timestampMs", ["timestampMs"]),
 
   // Upcoming Economic Calendar releases cached for UI & event risk
   calendar_events: defineTable({
