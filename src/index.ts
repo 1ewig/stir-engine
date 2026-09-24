@@ -53,7 +53,11 @@ export async function executeFullSystem(config: SystemConfig = DEFAULT_CONFIG): 
       layers: {},
       abortReason: `Data sources failed: ${failedSources.map((s: any) => s.source).join(', ')}`
     };
-    fs.writeFileSync(path.join(process.cwd(), 'audit_report.json'), JSON.stringify(failureReport, null, 2));
+    try {
+      fs.writeFileSync(path.join(process.cwd(), 'audit_report.json'), JSON.stringify(failureReport, null, 2));
+    } catch {
+      // Ignore file writing errors in read-only environments
+    }
     return failureReport;
   }
 
@@ -177,9 +181,13 @@ export async function executeFullSystem(config: SystemConfig = DEFAULT_CONFIG): 
     tradePlan: plan
   };
 
-  const auditPath = path.join(process.cwd(), 'audit_report.json');
-  fs.writeFileSync(auditPath, JSON.stringify(auditReport, null, 2), 'utf-8');
-  console.log(`[Audit Trail] Persisted structured execution report to: ${auditPath}\n`);
+  try {
+    const auditPath = path.join(process.cwd(), 'audit_report.json');
+    fs.writeFileSync(auditPath, JSON.stringify(auditReport, null, 2), 'utf-8');
+    console.log(`[Audit Trail] Persisted structured execution report to: ${auditPath}\n`);
+  } catch {
+    // Ignore file writing in serverless/cloud environments
+  }
 
   return auditReport;
 }

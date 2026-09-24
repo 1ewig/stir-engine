@@ -152,23 +152,38 @@ When you run the engine, you will see a structured real-time audit:
 
 ---
 
-## Project Structure
+## Convex Hourly Cron & Reactive Database
+
+The engine includes a full **Convex** backend integration for automated hourly execution, structured historical persistence, and zero-latency real-time client subscriptions.
+
+### Convex Architecture
 
 ```
-├── src/
-│   ├── index.ts             # Orchestrator & CLI entry point
-│   ├── types.ts             # Strict TypeScript interfaces & config defaults
-│   ├── dataProvider.ts      # Resilient data fetching, retries, caching, Wilder indicators
-│   ├── tradePlan.ts         # Asymmetric risk geometry, position sizing, & veto gates
-│   └── layers/
-│       ├── macro.ts         # Yield spreads, TIPS real rates, TTF gas, Brent, central banks
-│       ├── positioning.ts   # CFTC CoT speculative positioning & squeeze detection
-│       ├── news.ts          # TinyFish live news stream & ForexFactory calendar guard
-│       └── technical.ts     # Multi-timeframe trend & local 5-day structural anchors
-├── audit_report.json        # Persisted audit report from the latest run
-├── package.json             # NPM / Bun scripts and dependencies
-└── tsconfig.json            # TypeScript configuration
+convex/
+├── schema.ts         # Strictly typed tables (audit_reports, latest_signal, macro_indicators, calendar_events, news_stream)
+├── crons.ts          # Native hourly cron scheduler (runs at :00 UTC)
+├── engine.ts         # Node.js action running the 4-layer engine & internal mutations
+├── mutations.ts      # Internal mutations persisting reports, indicators, and calendar data
+└── queries.ts        # Reactive queries for frontend dashboards (getLatestSignal, getAuditHistory, etc.)
 ```
+
+### Initializing & Running with Convex
+
+1. **Log in & link your Convex project:**
+   ```bash
+   bun run convex:dev
+   ```
+   Follow the CLI prompt to select or link your Convex project.
+
+2. **Add Environment Secrets to Convex (Dashboard or CLI):**
+   ```bash
+   bun convex env set tiny_fish_api="your_tinyfish_api_key_here"
+   ```
+
+3. **Deploy the Production Cron & Backend:**
+   ```bash
+   bun run convex:deploy
+   ```
 
 ---
 
