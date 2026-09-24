@@ -30,6 +30,7 @@ export default defineSchema({
       technical: v.optional(v.any())
     }),
     tradePlan: v.optional(v.any()),
+    regimeOutlook: v.optional(v.any()),
     abortReason: v.optional(v.string())
   })
     .index("by_timestamp", ["timestamp"])
@@ -44,30 +45,55 @@ export default defineSchema({
     compositeScore: v.number(),
     verdict: v.string(),
     regime: v.string(),
+    directionalBias: v.optional(v.string()), // 'BULLISH_EUR' | 'BEARISH_EUR' | 'NEUTRAL_PARITY'
     conviction: v.string(),
     action: v.string(),
     vetoTriggered: v.boolean(),
     vetoReason: v.optional(v.string()),
     eventRiskActive: v.boolean(),
     eventRiskReason: v.optional(v.string()),
-    entryType: v.string(),
-    entryZone: v.string(),
-    entryMid: v.number(),
-    stopLossPrice: v.number(),
-    stopDistancePips: v.number(),
-    target1Price: v.number(),
-    target1Pips: v.number(),
-    target1RR: v.string(),
-    target2Price: v.number(),
-    target2Pips: v.number(),
-    target2RR: v.string(),
-    dailyAtrPips: v.number(),
-    holdingHorizon: v.string(),
-    effectiveLots: v.number(),
-    dollarRisk: v.number(),
+    
+    // Cross-Pillar Narrative Synthesis
+    executiveThesis: v.optional(v.string()),
+    macroPillarSummary: v.optional(v.string()),
+    positioningPillarSummary: v.optional(v.string()),
+    newsPillarSummary: v.optional(v.string()),
+    conflictDiagnosis: v.optional(v.string()),
+
+    // Structural Reference Framework (No signals)
+    currentPrice: v.optional(v.number()),
+    localResistance5d: v.optional(v.number()),
+    localSupport5d: v.optional(v.number()),
+    rangeHigh20d: v.optional(v.number()),
+    rangeLow20d: v.optional(v.number()),
+    channelMid: v.optional(v.number()),
+    dailyAtrPips: v.optional(v.number()),
+    volatilityState: v.optional(v.string()),
+
+    // Conditional Scenarios & Invalidation
+    thesisConfirmationTriggers: v.optional(v.array(v.string())),
+    thesisInvalidationTriggers: v.optional(v.array(v.string())),
+    tacticalPlaybook: v.optional(v.string()),
+
     rateRegimeFlag: v.string(),
     positioningRegimeFlag: v.string(),
-    reportId: v.optional(v.id("audit_reports"))
+    reportId: v.optional(v.id("audit_reports")),
+
+    // Optional legacy fields for backwards compatibility
+    entryType: v.optional(v.string()),
+    entryZone: v.optional(v.string()),
+    entryMid: v.optional(v.number()),
+    stopLossPrice: v.optional(v.number()),
+    stopDistancePips: v.optional(v.number()),
+    target1Price: v.optional(v.number()),
+    target1Pips: v.optional(v.number()),
+    target1RR: v.optional(v.string()),
+    target2Price: v.optional(v.number()),
+    target2Pips: v.optional(v.number()),
+    target2RR: v.optional(v.string()),
+    holdingHorizon: v.optional(v.string()),
+    effectiveLots: v.optional(v.number()),
+    dollarRisk: v.optional(v.number())
   }).index("by_key", ["key"]),
 
   // Real-time macro indicator snapshots for quick charting (TradingView / Recharts)

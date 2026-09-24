@@ -5,26 +5,24 @@
 // ============================================================================
 
 export interface SystemConfig {
-  accountEquity: number;        // e.g. 50000 USD
-  maxRiskPerTradePct: number;   // e.g. 1.0% = 0.01 ($500 risk)
   layerWeights: {
-    macro: number;              // default 0.40 (Two-speed sovereign yield spreads, real yields, energy ToT)
+    macro: number;              // default 0.55 (Two-speed sovereign yield spreads, real yields, energy ToT)
     positioning: number;        // default 0.25 (CFTC CoT divergence & institutional flow)
-    news: number;               // default 0.15 (Live news sentiment & economic surprises)
-    technical: number;          // default 0.20 (Weekly trend & local 5-day market structure)
+    news: number;               // default 0.20 (Live news sentiment & economic surprises)
+    technical: number;          // default 0.00 (Technicals 0% scoring weight by default)
   };
-  convictionThreshold: number;  // score threshold for trade activation (25.0)
+  convictionThreshold: number;  // score threshold for conviction activation (25.0)
   cacheTtlMs: number;           // in-memory API cache TTL (5 mins)
+  accountEquity?: number;       // optional legacy context
+  maxRiskPerTradePct?: number;  // optional legacy context
 }
 
 export const DEFAULT_CONFIG: SystemConfig = {
-  accountEquity: 50000,
-  maxRiskPerTradePct: 0.01,     // 1.0% risk per trade ($500 on $50k)
   layerWeights: {
     macro: 0.55,                // 55% Yields, Real Rates, Energy
     positioning: 0.25,          // 25% CFTC CoT Flow Divergence
     news: 0.20,                 // 20% News Sentiment & Economic Calendar
-    technical: 0.00             // 0% Technicals Disabled by default
+    technical: 0.00             // 0% Technicals Disabled by default (structural reference only)
   },
   convictionThreshold: 25.0,
   cacheTtlMs: 5 * 60 * 1000     // 5 minutes
@@ -189,43 +187,67 @@ export interface TechnicalLayerResult {
   breakoutState: 'BULLISH_BREAKOUT_5D' | 'BEARISH_BREAKOUT_5D' | 'INSIDE_RANGE';
 }
 
-export interface PositionSizing {
-  accountEquity: number;
-  riskPercentage: number;
-  dollarRisk: number;
-  stopDistancePips: number;
-  pipValuePerLot: number;       // $10 for EUR/USD standard lot
-  sizingMultiplier: number;     // 0.70x haircut if crowded
-  effectiveLots: number;        // Recommended lots after sizing multiplier
-  recommendedLots: number;      // Base standard lots
-  miniLots: number;             // Mini lots
+export type DirectionalBias = 'BULLISH_EUR' | 'BEARISH_EUR' | 'NEUTRAL_PARITY';
+export type ConvictionLevel = 'STRONG' | 'MODERATE' | 'LOW' | 'STAND_ASIDE';
+
+export interface StructuralReferenceLevels {
+  currentPrice: number;
+  localResistance5d: number;
+  localSupport5d: number;
+  rangeHigh20d: number;
+  rangeLow20d: number;
+  channelMid: number;
+  dailyAtrPips: number;
+  volatilityState: 'NORMAL' | 'ELEVATED' | 'COMPRESSED';
 }
 
-export interface TradePlan {
+export interface DirectionalRegimeOutlook {
   regime: 'BULLISH' | 'BEARISH' | 'NEUTRAL_RANGE';
+  directionalBias: DirectionalBias;
+  conviction: ConvictionLevel;
   action: string;
-  conviction: 'STRONG' | 'MODERATE' | 'STAND_ASIDE';
+  compositeScore: number;
   rateRegimeFlag: string;
   positioningRegimeFlag: string;
   vetoTriggered?: boolean;
   vetoReason?: string;
   eventRiskActive?: boolean;
   eventRiskReason?: string;
-  entryType: 'LOCAL_BREAKOUT_CONFIRMATION' | 'MICRO_PULLBACK_RETEST' | 'STAND_ASIDE';
-  entryZone: string;
-  entryMid: number;
-  stopLossPrice: number;
-  stopDistancePips: number;      // True structural distance (outside 5-day range)
-  target1Price: number;
-  target1Pips: number;           // ~120-160 pips (1:2.5R)
-  target1RR: string;
-  target2Price: number;
-  target2Pips: number;           // ~250-350 pips (1:5R to 1:6R)
-  target2RR: string;
-  dailyAtrPips: number;
-  holdingHorizon: string;
-  sizing: PositionSizing;
+
+  // Cross-Pillar Narrative Synthesis
+  executiveThesis: string;
+  macroPillarSummary: string;
+  positioningPillarSummary: string;
+  newsPillarSummary: string;
+  conflictDiagnosis?: string;
+
+  // Structural Reference Framework (Purely contextual, NO rigid signals)
+  referenceLevels: StructuralReferenceLevels;
+
+  // Conditional Scenarios & Invalidation
+  thesisConfirmationTriggers: string[];
+  thesisInvalidationTriggers: string[];
+  tacticalPlaybook: string;
+
+  // Optional legacy fields for backwards compatibility
+  entryType?: string;
+  entryZone?: string;
+  entryMid?: number;
+  stopLossPrice?: number;
+  stopDistancePips?: number;
+  target1Price?: number;
+  target1Pips?: number;
+  target1RR?: string;
+  target2Price?: number;
+  target2Pips?: number;
+  target2RR?: string;
+  dailyAtrPips?: number;
+  holdingHorizon?: string;
+  sizing?: any;
 }
+
+// Backwards compatibility alias
+export type TradePlan = DirectionalRegimeOutlook;
 
 export interface SystemAuditReport {
   timestamp: string;
@@ -241,6 +263,7 @@ export interface SystemAuditReport {
     news?: NewsAndCalendarResult;
     technical?: TechnicalLayerResult;
   };
-  tradePlan?: TradePlan;
+  regimeOutlook?: DirectionalRegimeOutlook;
+  tradePlan?: DirectionalRegimeOutlook; // alias for backwards compatibility
   abortReason?: string;
 }

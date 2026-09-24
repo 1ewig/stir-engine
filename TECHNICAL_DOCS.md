@@ -17,9 +17,9 @@ Any future AI agent modifying this codebase MUST respect these core system invar
    * Conviction Threshold: $\pm 25.0$ (configured in `DEFAULT_CONFIG.convictionThreshold`).
    * Composite scores strictly bounded in $[-100.0, +100.0]$.
    * Continuous normalization must use hyperbolic tangent scaling (`tanhNormalize(z, sensitivity)`) rather than discrete knife-edge step functions to avoid boundary whipsaws.
-3. **Technicals Policy:**
+3. **Technicals Policy & No Mechanical Signals:**
    * **Scoring Weight is 0% by default.** Technicals must NOT bias the fundamental composite score unless explicitly requested by the user or invoked via `--with-tech`.
-   * **Local technical structure (5-day high/low) is reserved strictly for trade location, asymmetric invalidation anchoring, and ATR volatility budgeting.**
+   * **No Mechanical Trade Signals:** The engine does not prescribe rigid button-clicks (limit entries, stop losses, take profits, or lot sizing). Instead, local technical structure (5-day high/low, 20-day channel, ATR) is provided strictly as a **Structural Reference Framework** and spatial context for desks.
 4. **Capital Preservation First:**
    * The engine must always prioritize capital preservation over trade frequency. Confluence Vetoes (Event-Risk, Short Squeeze, Liquidation) take absolute precedence over high conviction scores.
 5. **No Synthetic Mocking in Production:**
@@ -40,7 +40,7 @@ sequenceDiagram
     participant CoT as src/layers/positioning.ts
     participant News as src/layers/news.ts
     participant Tech as src/layers/technical.ts
-    participant Planner as src/tradePlan.ts
+    participant Outlook as src/regimeOutlook.ts
     participant Audit as audit_report.json
 
     CLI->>Orchestrator: executeFullSystem(config)
@@ -58,8 +58,8 @@ sequenceDiagram
     Note over Orchestrator: Check Data Health (Fail if > 2 critical sources down)
     Note over Orchestrator: Compute Composite Score = Σ (Score_i * Weight_i)
 
-    Orchestrator->>Planner: buildTradePlan(finalScore, macro, positioning, tech, config, news)
-    Planner-->>Orchestrator: TradePlan (Regime, Action, Stops, Targets, Sizing)
+    Orchestrator->>Outlook: buildDirectionalOutlook(finalScore, macro, positioning, tech, config, news)
+    Outlook-->>Orchestrator: DirectionalRegimeOutlook (Bias, Synthesis, Reference Levels, Triggers)
 
     Orchestrator->>Audit: Persist SystemAuditReport to audit_report.json
     Orchestrator->>CLI: Return SystemAuditReport
@@ -144,7 +144,7 @@ Where $\sigma$ represents the characteristic scale or volatility threshold of th
 
 ## 5. Decision Tree & Confluence Veto Hierarchy
 
-Inside [`src/tradePlan.ts`](file:///src/tradePlan.ts), the decision tree processes in strict sequential order:
+Inside [`src/regimeOutlook.ts`](file:///src/regimeOutlook.ts), the decision tree processes in strict sequential order:
 
 ```
 [Compute Final Score]
@@ -169,35 +169,29 @@ Inside [`src/tradePlan.ts`](file:///src/tradePlan.ts), the decision tree process
          │
          ▼
 [Directional Regime Check]
-   ├─ Score <= -Threshold ──► BEARISH SWING PLAN (Sell on Pullback to 5d Resistance)
-   ├─ Score >= +Threshold  ──► BULLISH SWING PLAN (Buy on Dip to 5d Support)
-   └─ Between -25 and +25  ──► NEUTRAL_RANGE (Stand Aside / Capital Preservation)
+   ├─ Score <= -Threshold ──► BEARISH EUR / BULLISH USD (Sovereign Carry & Macro Divergence)
+   ├─ Score >= +Threshold  ──► BULLISH EUR / BEARISH USD (Eurozone Rate Repricing & Growth Divergence)
+   └─ Between -25 and +25  ──► NEUTRAL_PARITY (Stand Aside / Range Consolidation or Cross-Pillar Conflict)
 ```
 
 ---
 
-## 6. Asymmetric Risk Geometry & Position Sizing
+## 6. Structural Reference Framework & Invalidation Triggers
 
-When a directional trade plan is generated:
+Instead of mechanical signals (prescribed entry prices, stop orders, take-profit limits, or dollar lot calculations), the engine equips traders with an **Institutional Reference Framework**:
 
-1. **Structural Stop Loss Anchor:**
-   * Short Stop: $\text{LocalSwingHigh}_{5d} + (\text{ATR}_{14} \times 0.35)$
-   * Long Stop: $\text{LocalSwingLow}_{5d} - (\text{ATR}_{14} \times 0.35)$
-   * **Rule:** Stops must NEVER be clipped inside the 5-day boundary.
-2. **Location Guard & Entry Type:**
-   * If current distance to stop $> 80\text{ pips}$ or RSI is exhausted:
-     * Force `MICRO_PULLBACK_RETEST` with a **Limit Order Retracement** ($50\text{--}65\text{ pips}$ below stop).
-     * Prevents shorting the bottom of a waterfall move or buying the top of a parabolic blow-off.
-   * If local 5-day breakout is fresh and RSI is unexhausted:
-     * `LOCAL_BREAKOUT_CONFIRMATION` immediate execution.
-3. **Multi-Week Profit Targets:**
-   * $\text{Take Profit 1} = 2.0 \times \text{StopDistance}$ ($1:2.0\text{ R:R}$)
-   * $\text{Take Profit 2} = 4.0 \times \text{StopDistance}$ ($1:4.0\text{ R:R}$)
-4. **Position Sizing Equation:**
-   $$\text{DollarRisk} = \text{AccountEquity} \times \text{MaxRiskPct}$$
-   $$\text{BaseLots} = \frac{\text{DollarRisk}}{\text{StopDistancePips} \times 10}$$
-   $$\text{EffectiveLots} = \text{BaseLots} \times \text{SizingMultiplier}$$
-   *(Note: SizingMultiplier is $0.70$ when positioning is crowded trend continuation, or $1.0$ otherwise).*
+1. **Structural Spatial Anchors:**
+   * **5-Day Local Structural Boundaries:** $\text{localSupport5d}$ and $\text{localResistance5d}$ inform the immediate 1-week price corridor.
+   * **20-Day Swing Channel:** $\text{rangeLow20d}$, $\text{channelMid}$, and $\text{rangeHigh20d}$ provide multi-week structural context.
+   * **ATR Volatility Regime:** Wilder 14-day smoothed ATR classifies the regime as `COMPRESSED` ($<42$ pips), `NORMAL` ($42\text{--}75$ pips), or `ELEVATED` ($>75$ pips).
+
+2. **Cross-Pillar Conflict Diagnosis:**
+   * Automatically isolates when Macro (Layer 1), Speculative Positioning (Layer 2), or News (Layer 3) clash, preventing traders from shorting into hedge fund short squeezes or buying into crowded liquidation waterfalls.
+
+3. **Conditional Scenarios & Invalidation Triggers:**
+   * **Confirmation Triggers:** Clear macroeconomic and structural milestones that confirm trend continuation (e.g. US-DE 2Y spread expanding $>+90\text{ bps}$, 5-day support breakdown).
+   * **Invalidation Triggers:** Exact market developments that void the directional bias (e.g. 2Y spread compressing $<+50\text{ bps}$, central bank dovish pivot, or daily close above 20-day high).
+   * **Tactical Desk Playbook:** Actionable institutional guidance on optimal trade location and market traps.
 
 ---
 

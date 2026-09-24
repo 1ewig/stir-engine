@@ -10,7 +10,7 @@ import { runMacroEngine } from './layers/macro';
 import { runPositioningEngine } from './layers/positioning';
 import { runTechnicalEngine } from './layers/technical';
 import { runNewsAndCalendarEngine } from './layers/news';
-import { buildTradePlan } from './tradePlan';
+import { buildDirectionalOutlook } from './regimeOutlook';
 
 // Re-export all submodules for comprehensive module access
 export * from './types';
@@ -19,6 +19,7 @@ export * from './layers/macro';
 export * from './layers/positioning';
 export * from './layers/technical';
 export * from './layers/news';
+export * from './regimeOutlook';
 export * from './tradePlan';
 export * from './ai';
 
@@ -74,7 +75,7 @@ export async function executeFullSystem(config: SystemConfig = DEFAULT_CONFIG): 
                     (tech.score * w.technical);
   const finalScore = parseFloat(composite.toFixed(1));
 
-  const plan = buildTradePlan(finalScore, macro, positioning, tech, config, news);
+  const outlook = buildDirectionalOutlook(finalScore, macro, positioning, tech, config, news);
 
   // Render Table Breakdown
   console.log("\n--------------------------------------------------------------------------------");
@@ -130,42 +131,40 @@ export async function executeFullSystem(config: SystemConfig = DEFAULT_CONFIG): 
   }
 
   console.log(`\n>>> COMPOSITE TRADING SCORE: ${finalScore} / 100 (Negative = USD Advantage, Positive = EUR Advantage) <<<`);
-  console.log(`>>> REGIME & VERDICT:        ${plan.action} [Conviction: ${plan.conviction} | Rates: ${plan.rateRegimeFlag} | CoT: ${plan.positioningRegimeFlag}] <<<\n`);
+  console.log(`>>> DIRECTIONAL BIAS:        ${outlook.directionalBias} [Conviction: ${outlook.conviction} | Rates: ${outlook.rateRegimeFlag} | CoT: ${outlook.positioningRegimeFlag}] <<<`);
+  console.log(`>>> REGIME DIRECTIVE:        ${outlook.action} <<<\n`);
 
-  if (plan.vetoTriggered) {
-    console.log("================================================================================");
-    console.log("             INSTITUTIONAL CONFLUENCE VETO ACTIVATED                            ");
-    console.log("================================================================================");
-    console.log(`• Status:            ${plan.action}`);
-    console.log(`• Veto Diagnosis:    ${plan.vetoReason}`);
-    console.log(`• Local Boundaries:  ${plan.entryZone}`);
-    console.log("• Capital Directive: Capital preservation. Stand aside until divergence / event risk clears.");
-    console.log("================================================================================\n");
-  } else if (plan.regime !== 'NEUTRAL_RANGE') {
-    console.log("================================================================================");
-    console.log(`            ACTIONABLE ${plan.regime} ASYMMETRIC SWING EXECUTION PLAN            `);
-    console.log("================================================================================");
-    console.log(`• Action:            ${plan.action}`);
-    console.log(`• Holding Horizon:   ${plan.holdingHorizon}`);
-    console.log(`• Entry Strategy:    ${plan.entryType}`);
-    console.log(`• Execution Zone:    ${plan.entryZone}`);
-    console.log(`• Structural Stop:   ${plan.stopLossPrice} (${plan.stopDistancePips} pips risk strictly outside 5d structure)`);
-    console.log(`• Take Profit 1:     ${plan.target1Price} (+${plan.target1Pips} pips | R:R ${plan.target1RR})`);
-    console.log(`• Take Profit 2:     ${plan.target2Price} (+${plan.target2Pips} pips | R:R ${plan.target2RR})`);
-    console.log(`• Daily Volatility:  ${plan.dailyAtrPips} pips / day (Wilder Smoothed ATR)`);
-    console.log(`• Risk Allocation:   $${plan.sizing.dollarRisk.toFixed(2)} (${plan.sizing.riskPercentage}% on $${plan.sizing.accountEquity.toLocaleString()})`);
-    console.log(`• Position Size:     ${plan.sizing.effectiveLots} Standard Lots (${plan.sizing.miniLots} Mini Lots) [Multiplier: ${plan.sizing.sizingMultiplier}x]`);
-    console.log("================================================================================\n");
-  } else {
-    console.log("================================================================================");
-    console.log("               NEUTRAL / RANGEBOUND REGIME DETECTED                             ");
-    console.log("================================================================================");
-    console.log("• Market is currently consolidating without sufficient directional divergence.");
-    console.log(`• Support Floor:     ${tech.swingLow20}`);
-    console.log(`• Resistance Ceiling:${tech.swingHigh20}`);
-    console.log("• Action:            Stand aside. Capital preservation mode.");
-    console.log("================================================================================\n");
+  console.log("================================================================================");
+  console.log("             EXECUTIVE MACRO REGIME & DIRECTIONAL OUTLOOK                       ");
+  console.log("================================================================================");
+  console.log(`• Directional Vector:   ${outlook.directionalBias}`);
+  console.log(`• Conviction Tier:      ${outlook.conviction}`);
+  console.log(`• Regime Directive:     ${outlook.action}`);
+  if (outlook.conflictDiagnosis) {
+    console.log(`\n[Cross-Pillar Conflict Diagnosis]`);
+    console.log(`  ${outlook.conflictDiagnosis}`);
   }
+  console.log(`\n[Executive Thesis]`);
+  console.log(`  ${outlook.executiveThesis}`);
+
+  console.log("\n--------------------------------------------------------------------------------");
+  console.log("                 STRUCTURAL REFERENCE FRAMEWORK (NO SIGNALS)                    ");
+  console.log("--------------------------------------------------------------------------------");
+  console.log(`• Current Spot Price:   ${outlook.referenceLevels.currentPrice.toFixed(4)}`);
+  console.log(`• 5-Day Structural Range: Floor: ${outlook.referenceLevels.localSupport5d.toFixed(4)} | Ceiling: ${outlook.referenceLevels.localResistance5d.toFixed(4)}`);
+  console.log(`• 20-Day Swing Channel:  Floor: ${outlook.referenceLevels.rangeLow20d.toFixed(4)} | Mid: ${outlook.referenceLevels.channelMid.toFixed(4)} | Ceiling: ${outlook.referenceLevels.rangeHigh20d.toFixed(4)}`);
+  console.log(`• Daily Volatility:      ${outlook.referenceLevels.dailyAtrPips} pips / day (Wilder Smoothed ATR) [Regime: ${outlook.referenceLevels.volatilityState}]`);
+
+  console.log("\n--------------------------------------------------------------------------------");
+  console.log("                 CONDITIONAL THESIS TRIGGERS & INVALIDATION                     ");
+  console.log("--------------------------------------------------------------------------------");
+  console.log("▶ Confirmation Triggers (Trend Continuation):");
+  outlook.thesisConfirmationTriggers.forEach(t => console.log(`  • ${t}`));
+  console.log("▶ Invalidation Triggers (Thesis Violation):");
+  outlook.thesisInvalidationTriggers.forEach(t => console.log(`  • ${t}`));
+  console.log(`\n▶ Tactical Desk Playbook:`);
+  console.log(`  ${outlook.tacticalPlaybook}`);
+  console.log("================================================================================\n");
 
   // Generate Structured Audit Report
   const auditReport: SystemAuditReport = {
@@ -174,7 +173,7 @@ export async function executeFullSystem(config: SystemConfig = DEFAULT_CONFIG): 
     status: 'SUCCESS',
     sourceHealth: dataProvider.healthLogs,
     compositeScore: finalScore,
-    verdict: plan.action,
+    verdict: outlook.action,
     weightsApplied: config.layerWeights,
     layers: {
       macro,
@@ -182,7 +181,8 @@ export async function executeFullSystem(config: SystemConfig = DEFAULT_CONFIG): 
       news,
       technical: tech
     },
-    tradePlan: plan
+    regimeOutlook: outlook,
+    tradePlan: outlook
   };
 
   try {

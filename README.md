@@ -42,9 +42,9 @@ The engine synthesizes market reality across four core pillars:
                                      │
                                      ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                       ASYMMETRIC EXECUTION PLAN                         │
-│  Limit Retracement Entry  │  Structural Stop Outside 5-Day Structure    │
-│  Take Profit 1 (1:2.0 R) │  Take Profit 2 (1:4.0 R) │ Exact Sizing ($) │
+│              INSTITUTIONAL DIRECTIONAL REGIME & SYNTHESIS               │
+│  Executive Macro Thesis   │  Cross-Pillar Conflict Diagnosis            │
+│  Structural Reference (5d)│  Thesis Confirmation & Invalidation Triggers│
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -68,12 +68,10 @@ Addresses the classic "exchange rate disconnect" where price diverges from macro
 * **Multi-Tier Fallback:** If the LLM times out or rate limits, the engine smoothly falls back to an internal 28+ keyword dictionary NLP engine, and then to neutral baseline without interrupting other pillars.
 * **Tier-1 Event Risk Guard:** Fetches weekly high- and medium-impact economic releases. If an ultra-high-impact release is due in $<6$ hours, an execution blackout veto is triggered.
 
-### 4. Market Structure & Trade Geometry (0% Default Scoring Weight)
-Technicals are **disabled by default from biasing the directional score** (avoiding curve-fitting and lagging signals). Instead, local structure is strictly used to anchor entry and invalidation:
-* **True Structural Invalidation:** Stops are never placed at arbitrary pip distances. They are anchored strictly outside the local 5-day swing highs/lows plus an ATR buffer.
-* **Location Guard:** If price is stretched far from resistance (e.g. after a 300-pip drop), the engine refuses to market sell. It demands a limit order retracement closer to value, ensuring asymmetric payoffs:
-  * **Take Profit 1:** 1:2.0 Risk/Reward (partial profit & de-risk).
-  * **Take Profit 2:** 1:4.0 Risk/Reward (runner for multi-week expansion).
+### 4. Market Structure & Structural Reference Framework (0% Default Scoring Weight)
+Technicals are **disabled by default from biasing the directional score** (avoiding curve-fitting and lagging signals). Instead, local structure provides **spatial context and reference boundaries**:
+* **Structural Reference Framework:** Informs desks of the 5-day structural range (floor & ceiling), 20-day swing channel, and daily ATR volatility baseline without prescribing rigid mechanical entries or stops.
+* **Conditional Scenarios & Invalidation:** Computes exact thesis confirmation triggers (what macro/price events validate continuation) and invalidation triggers (what reverses the directional bias).
 
 ---
 
@@ -146,14 +144,34 @@ When you run the engine, you will see a structured real-time audit:
 │ 4. Market Structure & Geometry       │ -56.3                │  0%    │  0.0         │ Trend: WEEKLY_BEARISH | RSI: 25.1 (Technicals Disabled from Scoring)                │
 └──────────────────────────────────────┴──────────────────────┴────────┴──────────────┴─────────────────────────────────────────────────────────────────────────────────────┘
 
->>> COMPOSITE TRADING SCORE: -14.1 / 100 (Negative = USD Advantage, Positive = EUR Advantage) <<<
->>> REGIME & VERDICT:        STAND ASIDE / CAPITAL PRESERVATION <<<
+>>> COMPOSITE TRADING SCORE: -19.1 / 100 (Negative = USD Advantage, Positive = EUR Advantage) <<<
+>>> DIRECTIONAL BIAS:        NEUTRAL_PARITY [Conviction: STAND_ASIDE | Rates: WIDENING_USD_ADVANTAGE | CoT: EXTREME_DIVERGENCE_REVERSAL] <<<
+>>> REGIME DIRECTIVE:        STAND ASIDE: Factor Conflict / Positioning Impediment <<<
+
+================================================================================
+             EXECUTIVE MACRO REGIME & DIRECTIONAL OUTLOOK                       
+================================================================================
+• Directional Vector:   NEUTRAL_PARITY
+• Conviction Tier:      STAND_ASIDE
+• Regime Directive:     STAND ASIDE: Factor Conflict / Positioning Impediment
+
+[Cross-Pillar Conflict Diagnosis]
+  CROSS-PILLAR CONFLICT (MACRO BEARISH vs. COT SHORT SQUEEZE): Sovereign yields and central bank policy favor USD (Macro: -27.3), but speculative futures positioning is exhausted at 52-week lows (18% CoT Index) and institutions are aggressively covering (+9,359 contracts). This short squeeze creates strong counter-trend upward pressure against the broader macro downtrend.
+
+--------------------------------------------------------------------------------
+                 STRUCTURAL REFERENCE FRAMEWORK (NO SIGNALS)                    
+--------------------------------------------------------------------------------
+• Current Spot Price:   1.1375
+• 5-Day Structural Range: Floor: 1.1364 | Ceiling: 1.1495
+• 20-Day Swing Channel:  Floor: 1.1364 | Mid: 1.1509 | Ceiling: 1.1654
+• Daily Volatility:      53 pips / day (Wilder Smoothed ATR) [Regime: NORMAL]
 ```
 
-### Key Fields to Watch:
-* **Composite Score:** Negative scores denote Dollar strength / Euro weakness. Positive scores denote Euro strength.
-* **Veto Status:** If hedge funds are covering shorts or a Tier-1 news release is due, the engine triggers an **Institutional Confluence Veto** and advises standing aside.
-* **Audit Trail:** Every run writes a full JSON snapshot to `audit_report.json` detailing latency, data source health, raw metrics, and exact trade parameters.
+### Key Intelligence Fields:
+* **Composite Score & Directional Vector:** Continuous fundamental score and resulting macro bias (`BULLISH_EUR`, `BEARISH_EUR`, `NEUTRAL_PARITY`).
+* **Cross-Pillar Conflict Diagnosis:** Instant diagnostic when sovereign rates, speculative positioning, and news narrative diverge.
+* **Structural Reference Framework:** Key 5-day boundaries and 20-day channels providing spatial context without prescriptive signals.
+* **Audit Trail:** Every run writes a full JSON snapshot to `audit_report.json` detailing latency, data source health, raw metrics, and full narrative synthesis.
 
 ---
 

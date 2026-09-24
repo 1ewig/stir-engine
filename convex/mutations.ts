@@ -38,37 +38,47 @@ export const saveAuditReport = internalMutation({
       .withIndex("by_key", (q) => q.eq("key", "current"))
       .first();
 
-    const plan = r.tradePlan || {};
+    const outlook = r.regimeOutlook || r.tradePlan || {};
+    const ref = outlook.referenceLevels || {};
     const signalData = {
       key: "current",
       timestamp: now,
       timestampMs: nowMs,
       compositeScore: r.compositeScore,
       verdict: r.verdict,
-      regime: plan.regime || "NEUTRAL_RANGE",
-      conviction: plan.conviction || "STAND_ASIDE",
-      action: plan.action || r.verdict,
-      vetoTriggered: plan.vetoTriggered ?? false,
-      vetoReason: plan.vetoReason,
-      eventRiskActive: plan.eventRiskActive ?? false,
-      eventRiskReason: plan.eventRiskReason,
-      entryType: plan.entryType || "STAND_ASIDE",
-      entryZone: plan.entryZone || "N/A",
-      entryMid: plan.entryMid ?? 0,
-      stopLossPrice: plan.stopLossPrice ?? 0,
-      stopDistancePips: plan.stopDistancePips ?? 0,
-      target1Price: plan.target1Price ?? 0,
-      target1Pips: plan.target1Pips ?? 0,
-      target1RR: plan.target1RR || "N/A",
-      target2Price: plan.target2Price ?? 0,
-      target2Pips: plan.target2Pips ?? 0,
-      target2RR: plan.target2RR || "N/A",
-      dailyAtrPips: plan.dailyAtrPips ?? 0,
-      holdingHorizon: plan.holdingHorizon || "N/A",
-      effectiveLots: plan.sizing?.effectiveLots ?? 0,
-      dollarRisk: plan.sizing?.dollarRisk ?? 0,
-      rateRegimeFlag: plan.rateRegimeFlag || "STABLE_SPREAD",
-      positioningRegimeFlag: plan.positioningRegimeFlag || "NEUTRAL",
+      regime: outlook.regime || "NEUTRAL_RANGE",
+      directionalBias: outlook.directionalBias || "NEUTRAL_PARITY",
+      conviction: outlook.conviction || "STAND_ASIDE",
+      action: outlook.action || r.verdict,
+      vetoTriggered: outlook.vetoTriggered ?? false,
+      vetoReason: outlook.vetoReason,
+      eventRiskActive: outlook.eventRiskActive ?? false,
+      eventRiskReason: outlook.eventRiskReason,
+
+      // Cross-Pillar Narrative Synthesis
+      executiveThesis: outlook.executiveThesis || "",
+      macroPillarSummary: outlook.macroPillarSummary || "",
+      positioningPillarSummary: outlook.positioningPillarSummary || "",
+      newsPillarSummary: outlook.newsPillarSummary || "",
+      conflictDiagnosis: outlook.conflictDiagnosis,
+
+      // Structural Reference Framework (No signals)
+      currentPrice: ref.currentPrice ?? 0,
+      localResistance5d: ref.localResistance5d ?? 0,
+      localSupport5d: ref.localSupport5d ?? 0,
+      rangeHigh20d: ref.rangeHigh20d ?? 0,
+      rangeLow20d: ref.rangeLow20d ?? 0,
+      channelMid: ref.channelMid ?? 0,
+      dailyAtrPips: ref.dailyAtrPips ?? 0,
+      volatilityState: ref.volatilityState || "NORMAL",
+
+      // Conditional Scenarios & Invalidation
+      thesisConfirmationTriggers: outlook.thesisConfirmationTriggers || [],
+      thesisInvalidationTriggers: outlook.thesisInvalidationTriggers || [],
+      tacticalPlaybook: outlook.tacticalPlaybook || "",
+
+      rateRegimeFlag: outlook.rateRegimeFlag || "STABLE_SPREAD",
+      positioningRegimeFlag: outlook.positioningRegimeFlag || "NEUTRAL",
       reportId
     };
 

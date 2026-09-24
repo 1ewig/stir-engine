@@ -2,7 +2,7 @@ import { query } from "./_generated/server";
 import { v } from "convex/values";
 
 /**
- * Get the latest active signal, regime, and trade plan (singleton O(1) lookup)
+ * Get the latest active signal, regime, and directional outlook (singleton O(1) lookup)
  */
 export const getLatestSignal = query({
   args: {},
@@ -13,6 +13,8 @@ export const getLatestSignal = query({
       .first();
   }
 });
+
+export const getLatestRegime = getLatestSignal;
 
 /**
  * Get audit history with pagination limit
