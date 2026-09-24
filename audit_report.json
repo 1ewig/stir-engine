@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-24T14:39:03.027Z",
+  "timestamp": "2026-09-24T14:44:33.939Z",
   "config": {
     "accountEquity": 50000,
     "maxRiskPerTradePct": 0.01,
@@ -17,47 +17,47 @@
     {
       "source": "NY_Fed_Reference_Rates",
       "status": "OK",
-      "latencyMs": 737
-    },
-    {
-      "source": "ECB_AAA_Yield_10Y",
-      "status": "OK",
-      "latencyMs": 918
-    },
-    {
-      "source": "ECB_AAA_Yield_2Y",
-      "status": "OK",
-      "latencyMs": 920
-    },
-    {
-      "source": "Brent_Crude",
-      "status": "OK",
-      "latencyMs": 1075
+      "latencyMs": 953
     },
     {
       "source": "Yahoo_Dutch_TTF_Gas",
       "status": "OK",
-      "latencyMs": 1075
-    },
-    {
-      "source": "Yahoo_EURUSD_Chart",
-      "status": "OK",
-      "latencyMs": 1083
+      "latencyMs": 1074
     },
     {
       "source": "VIX_Index",
       "status": "OK",
-      "latencyMs": 1109
+      "latencyMs": 1076
+    },
+    {
+      "source": "Yahoo_EURUSD_Chart",
+      "status": "OK",
+      "latencyMs": 1107
+    },
+    {
+      "source": "Brent_Crude",
+      "status": "OK",
+      "latencyMs": 1244
     },
     {
       "source": "ECB_Deposit_Rate",
       "status": "OK",
-      "latencyMs": 645
+      "latencyMs": 624
     },
     {
       "source": "CFTC_COT_Euro_FX",
       "status": "OK",
-      "latencyMs": 2357
+      "latencyMs": 1975
+    },
+    {
+      "source": "ECB_AAA_Yield_10Y",
+      "status": "OK",
+      "latencyMs": 2016
+    },
+    {
+      "source": "ECB_AAA_Yield_2Y",
+      "status": "OK",
+      "latencyMs": 3015
     },
     {
       "source": "FRED_Series_DFII10",
@@ -72,29 +72,29 @@
       "details": "Using benchmark fallback"
     },
     {
-      "source": "US_Yield_DGS10",
-      "status": "FALLBACK",
-      "latencyMs": 383,
-      "details": "Served via Yahoo Finance (^TNX)"
-    },
-    {
       "source": "US_Yield_DGS2",
       "status": "FALLBACK",
-      "latencyMs": 389,
+      "latencyMs": 388,
       "details": "Served via Yahoo Finance (^IRX)"
+    },
+    {
+      "source": "US_Yield_DGS10",
+      "status": "FALLBACK",
+      "latencyMs": 391,
+      "details": "Served via Yahoo Finance (^TNX)"
     },
     {
       "source": "TinyFish_News_Stream",
       "status": "OK",
-      "latencyMs": 8673
+      "latencyMs": 5248
     },
     {
       "source": "Economic_Calendar",
       "status": "OK",
-      "latencyMs": 26
+      "latencyMs": 331
     }
   ],
-  "compositeScore": -14.1,
+  "compositeScore": -12.5,
   "verdict": "STAND ASIDE / CAPITAL PRESERVATION",
   "weightsApplied": {
     "macro": 0.55,
@@ -143,8 +143,8 @@
           "name": "10Y Sovereign Yield Spread Momentum (10-Day Delta)",
           "weight": 10,
           "rawReading": "Spread: +1.59% | 10d Delta: +0.18%",
-          "normalizedScore": -0.902,
-          "weightedScore": -9.02,
+          "normalizedScore": -0.899,
+          "weightedScore": -8.99,
           "rationale": "Long-term economic growth divergence and sovereign bond term premium."
         },
         {
@@ -158,17 +158,17 @@
         {
           "name": "European Energy Terms-of-Trade (Brent & Dutch TTF Gas)",
           "weight": 8,
-          "rawReading": "TTF Gas: €74.0/MWh | Brent: $100.26",
-          "normalizedScore": -0.516,
-          "weightedScore": -4.13,
+          "rawReading": "TTF Gas: €74.6/MWh | Brent: $100.46",
+          "normalizedScore": -0.526,
+          "weightedScore": -4.21,
           "rationale": "European industrial energy import burden (Dutch TTF) vs US LNG export self-sufficiency."
         },
         {
           "name": "Global Risk Sentiment & VIX Velocity",
           "weight": 7,
-          "rawReading": "VIX: 15.60 (-2.1 5d)",
-          "normalizedScore": 0.248,
-          "weightedScore": 1.74,
+          "rawReading": "VIX: 15.62 (-2.1 5d)",
+          "normalizedScore": 0.247,
+          "weightedScore": 1.73,
           "rationale": "Global risk-off dollar liquidity hoarding vs risk-on pro-cyclical euro flows."
         }
       ],
@@ -179,10 +179,10 @@
         "spread2yFastDelta3d": 0.051,
         "spread2yMedDelta10d": -0.015,
         "spread2yZScore": -1.20709816679172,
-        "us10y": 5.111999988555908,
+        "us10y": 5.109999656677246,
         "de10y": 3.5236609264,
-        "spread10y": 1.588,
-        "spread10yDelta10d": 0.178
+        "spread10y": 1.586,
+        "spread10yDelta10d": 0.176
       },
       "rateMetrics": {
         "liveFedRate": 3.88,
@@ -196,10 +196,10 @@
       "rawMetrics": {
         "us2y": 4.0320000648498535,
         "de2y": 3.2183173377,
-        "us10y": 5.111999988555908,
+        "us10y": 5.109999656677246,
         "de10y": 3.5236609264,
-        "brent": 100.26000213623047,
-        "vix": 15.600000381469727
+        "brent": 100.45999908447266,
+        "vix": 15.619999885559082
       },
       "realYields": {
         "us10yTips": 2.63,
@@ -207,8 +207,8 @@
         "rollingZScore": 0.86
       },
       "energy": {
-        "brent": 100.26000213623047,
-        "dutchTtfGas": 73.95
+        "brent": 100.45999908447266,
+        "dutchTtfGas": 74.58
       }
     },
     "positioning": {
@@ -234,7 +234,7 @@
       "rationale": "Bullish Short Squeeze Divergence: CoT Index is depressed (18%), and 4-week net flow is accumulating (+9,359 contracts). Elevated probability of short squeeze rally."
     },
     "news": {
-      "score": -86.9,
+      "score": -78.8,
       "bias": "USD_BULLISH",
       "headlines": [
         {
@@ -243,15 +243,7 @@
           "url": "https://www.wsj.com/economy/central-banking/dollar-jumps-to-8-week-high-as-fed-rate-hike-bets-outweigh-lower-oil-prices-92e6cf72",
           "sentiment": "USD_BULLISH",
           "score": -1,
-          "snippet": " [Fed rate-hike bets boost dollar]"
-        },
-        {
-          "title": "Fed Rate-Hike Expectations Strengthen Dollar, Lift Treasury Yields",
-          "source": "www.wsj.com › Markets & Finance › Currencies",
-          "url": "https://www.wsj.com/finance/currencies/asian-currencies-broadly-weaken-as-treasury-yields-surge-d5c5d1cf",
-          "sentiment": "USD_BULLISH",
-          "score": -1,
-          "snippet": " [Strengthened Fed hike expectations lift yields]"
+          "snippet": " [Market bets on Fed rate hike]"
         },
         {
           "title": "Fed's Barr Says More Rate Hikes Likely Needed to Return Inflation ...",
@@ -259,7 +251,15 @@
           "url": "https://www.wsj.com/pro/central-banking/feds-barr-says-more-rate-hikes-likely-needed-to-return-inflation-to-target-c165cb26",
           "sentiment": "USD_BULLISH",
           "score": -1,
-          "snippet": " [Fed official advocates further rate hikes]"
+          "snippet": " [Fed official supports further rate hikes]"
+        },
+        {
+          "title": "Fed Rate-Hike Expectations Strengthen Dollar, Lift Treasury Yields",
+          "source": "www.wsj.com › Markets & Finance › Currencies",
+          "url": "https://www.wsj.com/finance/currencies/asian-currencies-broadly-weaken-as-treasury-yields-surge-d5c5d1cf",
+          "sentiment": "USD_BULLISH",
+          "score": -0.65,
+          "snippet": " [Strengthened Fed rate hike expectations]"
         },
         {
           "title": "Fed May Need More Interest Rate Hikes to Curb Inflation, Says Barkin",
@@ -267,15 +267,15 @@
           "url": "https://www.wsj.com/economy/central-banking/feds-barkin-says-one-rate-hike-may-not-be-enough-to-tame-inflation-dd338c6c",
           "sentiment": "USD_BULLISH",
           "score": -1,
-          "snippet": " [Barkin signals need for more hikes]"
+          "snippet": " [Fed official cites need for more hikes]"
         },
         {
-          "title": "Dollar More Attractive After Fed Defies Trump With Rate Rise - WSJ",
-          "source": "www.wsj.com › Markets & Finance › Currencies",
-          "url": "https://www.wsj.com/finance/currencies/asian-currencies-consolidate-amid-falling-oil-prices-e3c4d4d6",
+          "title": "Inflation pressures raise prospect of Fed rate hike on eve of elections",
+          "source": "www.reuters.com › business › feds-barr-says-further-rate-hikes-will-likely-...",
+          "url": "https://www.reuters.com/business/feds-barr-says-further-rate-hikes-will-likely-be-needed-2026-09-23/",
           "sentiment": "USD_BULLISH",
-          "score": -1,
-          "snippet": " [Fed implements rate hike despite pressure]"
+          "score": -0.65,
+          "snippet": " [Inflation pressures raise rate hike prospect]"
         },
         {
           "title": "US Dollar Above 101: Is US Economic Strength Driving Greenback ...",
@@ -290,16 +290,16 @@
           "source": "www.investing.com › analysis › gold-under-fed-pressure-can-it-hold-abov...",
           "url": "https://www.investing.com/analysis/gold-under-fed-pressure-can-it-hold-above-4300-200688217",
           "sentiment": "USD_BULLISH",
-          "score": -0.65,
+          "score": -0.35,
           "snippet": " [Fed pressure impacts gold prices]"
         },
         {
-          "title": "Gold Defied the Fed's Rate Hike—These 3 Plays Stand Out",
-          "source": "www.investing.com › analysis › gold-defied-the-feds-rate-hikethese-3-play...",
-          "url": "https://www.investing.com/analysis/gold-defied-the-feds-rate-hikethese-3-plays-stand-out-200688271",
+          "title": "Dollar More Attractive After Fed Defies Trump With Rate Rise - WSJ",
+          "source": "www.wsj.com › Markets & Finance › Currencies",
+          "url": "https://www.wsj.com/finance/currencies/asian-currencies-consolidate-amid-falling-oil-prices-e3c4d4d6",
           "sentiment": "USD_BULLISH",
-          "score": -0.65,
-          "snippet": " [Market reaction to Fed rate hike]"
+          "score": -1,
+          "snippet": " [Fed defies Trump with rate rise]"
         }
       ],
       "calendarEvents": [
@@ -322,7 +322,7 @@
           "country": "USD",
           "impact": "Medium",
           "date": "2026-09-22T09:55:00-04:00",
-          "hoursUntil": -48.7
+          "hoursUntil": -48.8
         },
         {
           "title": "French Flash Manufacturing PMI",
@@ -331,7 +331,7 @@
           "date": "2026-09-23T03:15:00-04:00",
           "forecast": "50.9",
           "previous": "51.5",
-          "hoursUntil": -31.4
+          "hoursUntil": -31.5
         },
         {
           "title": "French Flash Services PMI",
@@ -340,7 +340,7 @@
           "date": "2026-09-23T03:15:00-04:00",
           "forecast": "48.3",
           "previous": "48.4",
-          "hoursUntil": -31.4
+          "hoursUntil": -31.5
         },
         {
           "title": "German Flash Manufacturing PMI",
@@ -374,7 +374,7 @@
           "country": "USD",
           "impact": "Medium",
           "date": "2026-09-24T10:15:00-04:00",
-          "hoursUntil": -0.4
+          "hoursUntil": -0.5
         },
         {
           "title": "Revised UoM Consumer Sentiment",
@@ -398,15 +398,15 @@
       "eventRiskActive": false
     },
     "technical": {
-      "score": -56.3,
-      "currentPrice": 1.1378,
+      "score": -56.4,
+      "currentPrice": 1.1377,
       "weeklyTrend": "WEEKLY_BEARISH",
       "sma20w": 1.1541,
       "sma20": 1.1559,
       "sma20SlopePips": -11.2,
       "sma50": 1.1539,
       "sma200": 1.1625,
-      "rsiWilder": 25.1,
+      "rsiWilder": 25,
       "rsiScore": 12,
       "rsiExhaustionState": "OVERSOLD_EXHAUSTION",
       "atrPips": 53,

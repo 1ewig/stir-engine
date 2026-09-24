@@ -24,7 +24,7 @@ export class GroqAIProvider implements AIClassificationProvider {
   async classifyArticles(
     articles: ArticleClassificationInput[]
   ): Promise<Map<number, ArticleSemanticOutput> | null> {
-    const apiKey = process.env.GROQ_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY || process.env.groq_api_key;
     if (!apiKey || articles.length === 0) {
       return null;
     }
@@ -71,7 +71,8 @@ Respond ONLY with valid JSON matching this schema:
       });
 
       if (!res.ok) {
-        console.warn(`[GroqAIProvider] API returned HTTP ${res.status}. Fallback activated.`);
+        const errorDetail = res.status === 429 ? ' (Rate Limit Exceeded)' : '';
+        console.warn(`[GroqAIProvider] API returned HTTP ${res.status} ${res.statusText}${errorDetail}. Fallback activated.`);
         return null;
       }
 

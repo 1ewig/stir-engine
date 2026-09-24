@@ -3,9 +3,9 @@ import path from 'path';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
-const apiKey = process.env.GROQ_API_KEY;
+const apiKey = process.env.GROQ_API_KEY || process.env.groq_api_key;
 if (!apiKey) {
-  console.error("GROQ_API_KEY is not set in .env.local");
+  console.error("GROQ_API_KEY or groq_api_key is not set in .env.local");
   process.exit(1);
 }
 
