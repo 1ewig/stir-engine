@@ -12,7 +12,9 @@ export class RobustDataProvider {
     name: string,
     url: string,
     retries = 3,
-    delayMs = 800
+    delayMs = 800,
+    timeoutMs = 6000,
+    recordHealth = true
   ): Promise<{ data: T | null; health: DataSourceHealth }> {
     const cached = this.cache.get(url);
     const now = Date.now();
@@ -27,8 +29,11 @@ export class RobustDataProvider {
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
         const res = await fetch(url, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-          signal: AbortSignal.timeout(7000)
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,application/json,*/*;q=0.8'
+          },
+          signal: AbortSignal.timeout(timeoutMs)
         });
         if (!res.ok) {
           if (res.status === 429 || res.status >= 500) {
@@ -36,7 +41,7 @@ export class RobustDataProvider {
           }
           const latency = Date.now() - startTime;
           const health: DataSourceHealth = { source: name, status: 'FAILED', latencyMs: latency, details: `HTTP ${res.status}` };
-          this.healthLogs.push(health);
+          if (recordHealth) this.healthLogs.push(health);
           return { data: null, health };
         }
 
@@ -44,13 +49,13 @@ export class RobustDataProvider {
         const latency = Date.now() - startTime;
         this.cache.set(url, { timestamp: now, data });
         const health: DataSourceHealth = { source: name, status: 'OK', latencyMs: latency };
-        this.healthLogs.push(health);
+        if (recordHealth) this.healthLogs.push(health);
         return { data, health };
       } catch (err: any) {
         if (attempt === retries) {
           const latency = Date.now() - startTime;
           const health: DataSourceHealth = { source: name, status: 'FAILED', latencyMs: latency, details: err.message };
-          this.healthLogs.push(health);
+          if (recordHealth) this.healthLogs.push(health);
           return { data: null, health };
         }
         await new Promise((r) => setTimeout(r, delayMs * Math.pow(2, attempt - 1)));
@@ -58,39 +63,46 @@ export class RobustDataProvider {
     }
     const latency = Date.now() - startTime;
     const health: DataSourceHealth = { source: name, status: 'FAILED', latencyMs: latency, details: 'Unknown failure' };
-    this.healthLogs.push(health);
+    if (recordHealth) this.healthLogs.push(health);
     return { data: null, health };
   }
 
   async fetchTextWithRetry(
     name: string,
     url: string,
-    retries = 2
+    retries = 2,
+    timeoutMs = 4000,
+    recordHealth = true
   ): Promise<{ text: string | null; health: DataSourceHealth }> {
     const startTime = Date.now();
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
         const res = await fetch(url, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-          signal: AbortSignal.timeout(7000)
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'text/csv,text/plain,*/*'
+          },
+          signal: AbortSignal.timeout(timeoutMs)
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const text = await res.text();
         const latency = Date.now() - startTime;
         const health: DataSourceHealth = { source: name, status: 'OK', latencyMs: latency };
-        this.healthLogs.push(health);
+        if (recordHealth) this.healthLogs.push(health);
         return { text, health };
       } catch (err: any) {
         if (attempt === retries) {
           const latency = Date.now() - startTime;
           const health: DataSourceHealth = { source: name, status: 'FAILED', latencyMs: latency, details: err.message };
-          this.healthLogs.push(health);
+          if (recordHealth) this.healthLogs.push(health);
           return { text: null, health };
         }
-        await new Promise((r) => setTimeout(r, 800));
+        await new Promise((r) => setTimeout(r, 600));
       }
     }
-    return { text: null, health: { source: name, status: 'FAILED', latencyMs: 0 } };
+    const health: DataSourceHealth = { source: name, status: 'FAILED', latencyMs: 0 };
+    if (recordHealth) this.healthLogs.push(health);
+    return { text: null, health };
   }
 }
 
@@ -105,7 +117,7 @@ export const dataProvider = new RobustDataProvider();
  */
 export async function fetchUstYieldSeries(seriesId: 'DGS2' | 'DGS10'): Promise<number[]> {
   const url = `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${seriesId}`;
-  const res = await dataProvider.fetchTextWithRetry(`FRED_${seriesId}`, url);
+  const res = await dataProvider.fetchTextWithRetry(`FRED_${seriesId}`, url, 1, 3000, false);
   if (res.text) {
     const lines = res.text.trim().split('\n');
     const values: number[] = [];
@@ -119,17 +131,21 @@ export async function fetchUstYieldSeries(seriesId: 'DGS2' | 'DGS10'): Promise<n
         }
       }
     }
-    if (values.length >= 5) return values;
+    if (values.length >= 5) {
+      dataProvider.healthLogs.push({ source: `US_Yield_${seriesId}`, status: 'OK', latencyMs: res.health.latencyMs });
+      return values;
+    }
   }
 
   // Graceful fallback to Yahoo Finance if FRED is unreachable
   const yahooSymbol = seriesId === 'DGS10' ? '^TNX' : '^IRX';
   try {
     const yUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=6mo&interval=1d`;
-    const { data } = await dataProvider.fetchWithRetry<any>(`Yahoo_${yahooSymbol}`, yUrl);
+    const { data, health } = await dataProvider.fetchWithRetry<any>(`Yahoo_${yahooSymbol}`, yUrl, 2, 500, 4000, false);
     const closes: number[] = (data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || [])
       .filter((x: any): x is number => typeof x === 'number' && !isNaN(x) && x > 0);
     if (closes.length >= 5) {
+      dataProvider.healthLogs.push({ source: `US_Yield_${seriesId}`, status: 'FALLBACK', latencyMs: health.latencyMs, details: `Served via Yahoo Finance (${yahooSymbol})` });
       return closes.slice(-60);
     }
   } catch (err) {
@@ -137,6 +153,7 @@ export async function fetchUstYieldSeries(seriesId: 'DGS2' | 'DGS10'): Promise<n
   }
 
   // Default institutional baseline if all feeds time out
+  dataProvider.healthLogs.push({ source: `US_Yield_${seriesId}`, status: 'FALLBACK', latencyMs: 0, details: 'Static institutional baseline' });
   return seriesId === 'DGS2' ? Array(60).fill(3.85) : Array(60).fill(4.25);
 }
 
@@ -145,7 +162,7 @@ export async function fetchUstYieldSeries(seriesId: 'DGS2' | 'DGS10'): Promise<n
  */
 export async function fetchEcbBenchmarkYield(maturity: '2Y' | '10Y'): Promise<number[]> {
   const url = `https://data-api.ecb.europa.eu/service/data/YC/B.U2.EUR.4F.G_N_A.SV_C_YM.SR_${maturity}?lastNObservations=90&format=jsondata`;
-  const { data } = await dataProvider.fetchWithRetry<any>(`ECB_AAA_Yield_${maturity}`, url);
+  const { data } = await dataProvider.fetchWithRetry<any>(`ECB_AAA_Yield_${maturity}`, url, 2, 500, 5000);
 
   try {
     if (data?.dataSets?.[0]?.series) {
@@ -176,7 +193,7 @@ export async function fetchEcbBenchmarkYield(maturity: '2Y' | '10Y'): Promise<nu
  */
 export async function fetchCftcEuroPositioning(): Promise<any[]> {
   const url = 'https://publicreporting.cftc.gov/resource/6dca-aqww.json?cftc_contract_market_code=099741&$limit=52&$order=report_date_as_yyyy_mm_dd%20DESC';
-  const { data } = await dataProvider.fetchWithRetry<any[]>('CFTC_COT_Euro_FX', url);
+  const { data } = await dataProvider.fetchWithRetry<any[]>('CFTC_COT_Euro_FX', url, 2, 500, 6000);
   if (Array.isArray(data) && data.length > 0) {
     return data;
   }
@@ -188,16 +205,20 @@ export async function fetchCftcEuroPositioning(): Promise<any[]> {
  */
 export async function fetchFredValue(seriesId: string): Promise<number | null> {
   const url = `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${seriesId}`;
-  const res = await dataProvider.fetchTextWithRetry(`FRED_${seriesId}`, url);
+  const res = await dataProvider.fetchTextWithRetry(`FRED_${seriesId}`, url, 1, 3000, false);
   if (res.text) {
     const lines = res.text.trim().split('\n').filter(l => l.includes(','));
     const valid = lines.filter(l => !l.endsWith('.') && !l.includes('ND'));
     if (valid.length > 0) {
       const lastLine = valid[valid.length - 1];
       const val = parseFloat(lastLine.split(',')[1]);
-      if (!isNaN(val)) return val;
+      if (!isNaN(val)) {
+        dataProvider.healthLogs.push({ source: `FRED_${seriesId}`, status: 'OK', latencyMs: res.health.latencyMs });
+        return val;
+      }
     }
   }
+  dataProvider.healthLogs.push({ source: `FRED_${seriesId}`, status: 'FALLBACK', latencyMs: 0, details: 'Using benchmark fallback' });
   return null;
 }
 
@@ -206,7 +227,7 @@ export async function fetchFredValue(seriesId: string): Promise<number | null> {
  */
 export async function fetchFredSeries(seriesId: string, limit = 90): Promise<number[]> {
   const url = `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${seriesId}`;
-  const res = await dataProvider.fetchTextWithRetry(`FRED_Series_${seriesId}`, url);
+  const res = await dataProvider.fetchTextWithRetry(`FRED_Series_${seriesId}`, url, 1, 3000, false);
   if (res.text) {
     const lines = res.text.trim().split('\n');
     const values: number[] = [];
@@ -219,8 +240,12 @@ export async function fetchFredSeries(seriesId: string, limit = 90): Promise<num
         }
       }
     }
-    if (values.length >= 5) return values;
+    if (values.length >= 5) {
+      dataProvider.healthLogs.push({ source: `FRED_Series_${seriesId}`, status: 'OK', latencyMs: res.health.latencyMs });
+      return values;
+    }
   }
+  dataProvider.healthLogs.push({ source: `FRED_Series_${seriesId}`, status: 'FALLBACK', latencyMs: 0, details: 'Using series baseline' });
   return [];
 }
 
