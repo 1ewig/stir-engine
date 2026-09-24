@@ -91,6 +91,7 @@ export interface MacroLayerResult {
     liveEcbRate: number;
     currentRateDifferential: number;
     rateDifferential30dChange: number;
+    policyScore?: number;
     rateRegime: 'WIDENING_USD_ADVANTAGE' | 'COMPRESSING_EUR_RELIEF' | 'STABLE_SPREAD';
   };
   rawMetrics: {
@@ -104,6 +105,7 @@ export interface MacroLayerResult {
   realYields?: {
     us10yTips: number;
     us10yBreakeven: number;
+    rollingZScore?: number;
   };
   energy?: {
     brent: number;

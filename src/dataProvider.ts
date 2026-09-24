@@ -110,7 +110,7 @@ export async function fetchUstYieldSeries(seriesId: 'DGS2' | 'DGS10'): Promise<n
     const lines = res.text.trim().split('\n');
     const values: number[] = [];
     // Read from end to get recent daily observations (skip headers and '.' missing days)
-    for (let i = lines.length - 1; i >= 0 && values.length < 40; i--) {
+    for (let i = lines.length - 1; i >= 0 && values.length < 90; i--) {
       const parts = lines[i].split(',');
       if (parts.length >= 2) {
         const val = parseFloat(parts[1].trim());
@@ -125,26 +125,26 @@ export async function fetchUstYieldSeries(seriesId: 'DGS2' | 'DGS10'): Promise<n
   // Graceful fallback to Yahoo Finance if FRED is unreachable
   const yahooSymbol = seriesId === 'DGS10' ? '^TNX' : '^IRX';
   try {
-    const yUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=3mo&interval=1d`;
+    const yUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=6mo&interval=1d`;
     const { data } = await dataProvider.fetchWithRetry<any>(`Yahoo_${yahooSymbol}`, yUrl);
     const closes: number[] = (data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || [])
       .filter((x: any): x is number => typeof x === 'number' && !isNaN(x) && x > 0);
     if (closes.length >= 5) {
-      return closes.slice(-30);
+      return closes.slice(-60);
     }
   } catch (err) {
     console.warn(`[dataProvider] Fallback for ${seriesId} failed:`, err);
   }
 
   // Default institutional baseline if all feeds time out
-  return seriesId === 'DGS2' ? Array(30).fill(3.85) : Array(30).fill(4.25);
+  return seriesId === 'DGS2' ? Array(60).fill(3.85) : Array(60).fill(4.25);
 }
 
 /**
  * Fetch Euro Area AAA benchmark government bond yields from official ECB Data Portal API
  */
 export async function fetchEcbBenchmarkYield(maturity: '2Y' | '10Y'): Promise<number[]> {
-  const url = `https://data-api.ecb.europa.eu/service/data/YC/B.U2.EUR.4F.G_N_A.SV_C_YM.SR_${maturity}?lastNObservations=35&format=jsondata`;
+  const url = `https://data-api.ecb.europa.eu/service/data/YC/B.U2.EUR.4F.G_N_A.SV_C_YM.SR_${maturity}?lastNObservations=90&format=jsondata`;
   const { data } = await dataProvider.fetchWithRetry<any>(`ECB_AAA_Yield_${maturity}`, url);
 
   try {
@@ -200,6 +200,30 @@ export async function fetchFredValue(seriesId: string): Promise<number | null> {
   }
   return null;
 }
+
+/**
+ * Fetch historical time series of any FRED series (e.g. TIPS DFII10 rolling observations)
+ */
+export async function fetchFredSeries(seriesId: string, limit = 90): Promise<number[]> {
+  const url = `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${seriesId}`;
+  const res = await dataProvider.fetchTextWithRetry(`FRED_Series_${seriesId}`, url);
+  if (res.text) {
+    const lines = res.text.trim().split('\n');
+    const values: number[] = [];
+    for (let i = lines.length - 1; i >= 0 && values.length < limit; i--) {
+      const parts = lines[i].split(',');
+      if (parts.length >= 2) {
+        const val = parseFloat(parts[1].trim());
+        if (!isNaN(val) && val > 0) {
+          values.unshift(val);
+        }
+      }
+    }
+    if (values.length >= 5) return values;
+  }
+  return [];
+}
+
 
 /**
  * Fetch Dutch TTF Natural Gas futures (primary European industrial energy benchmark)

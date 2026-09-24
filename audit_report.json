@@ -1,12 +1,12 @@
 {
-  "timestamp": "2026-09-24T07:30:28.792Z",
+  "timestamp": "2026-09-24T08:00:01.439Z",
   "config": {
     "accountEquity": 50000,
     "maxRiskPerTradePct": 0.01,
     "layerWeights": {
-      "macro": 0.75,
-      "positioning": 0,
-      "news": 0.25,
+      "macro": 0.55,
+      "positioning": 0.25,
+      "news": 0.2,
       "technical": 0
     },
     "convictionThreshold": 25,
@@ -15,140 +15,156 @@
   "status": "SUCCESS",
   "sourceHealth": [
     {
-      "source": "ECB_AAA_Yield_10Y",
+      "source": "FRED_Series_DFII10",
       "status": "OK",
-      "latencyMs": 692
-    },
-    {
-      "source": "ECB_AAA_Yield_2Y",
-      "status": "OK",
-      "latencyMs": 777
+      "latencyMs": 935
     },
     {
       "source": "FRED_T10YIE",
       "status": "OK",
-      "latencyMs": 799
-    },
-    {
-      "source": "FRED_DFII10",
-      "status": "OK",
-      "latencyMs": 802
+      "latencyMs": 941
     },
     {
       "source": "NY_Fed_Reference_Rates",
       "status": "OK",
-      "latencyMs": 924
-    },
-    {
-      "source": "FRED_DGS10",
-      "status": "OK",
-      "latencyMs": 968
+      "latencyMs": 974
     },
     {
       "source": "FRED_DGS2",
       "status": "OK",
-      "latencyMs": 987
+      "latencyMs": 1072
     },
     {
       "source": "VIX_Index",
       "status": "OK",
-      "latencyMs": 1074
+      "latencyMs": 1189
     },
     {
       "source": "Yahoo_EURUSD_Chart",
       "status": "OK",
-      "latencyMs": 1114
+      "latencyMs": 1193
     },
     {
       "source": "Yahoo_Dutch_TTF_Gas",
       "status": "OK",
-      "latencyMs": 1132
-    },
-    {
-      "source": "TinyFish_News_Stream",
-      "status": "OK",
-      "latencyMs": 1147
+      "latencyMs": 1220
     },
     {
       "source": "Brent_Crude",
       "status": "OK",
-      "latencyMs": 1151
+      "latencyMs": 1225
     },
     {
-      "source": "ECB_Deposit_Rate",
+      "source": "FRED_DGS10",
       "status": "OK",
-      "latencyMs": 361
+      "latencyMs": 1284
     },
     {
-      "source": "Economic_Calendar",
+      "source": "ECB_AAA_Yield_2Y",
       "status": "OK",
-      "latencyMs": 239
+      "latencyMs": 1303
+    },
+    {
+      "source": "TinyFish_News_Stream",
+      "status": "OK",
+      "latencyMs": 1417
     },
     {
       "source": "CFTC_COT_Euro_FX",
       "status": "OK",
-      "latencyMs": 1421
+      "latencyMs": 1494
+    },
+    {
+      "source": "Economic_Calendar",
+      "status": "OK",
+      "latencyMs": 281
+    },
+    {
+      "source": "ECB_AAA_Yield_10Y",
+      "status": "OK",
+      "latencyMs": 1714
+    },
+    {
+      "source": "ECB_Deposit_Rate",
+      "status": "OK",
+      "latencyMs": 8014
     }
   ],
-  "compositeScore": -47.1,
-  "verdict": "SELL EUR/USD (Limit Order on Retracement to Value)",
+  "compositeScore": -22.4,
+  "verdict": "STAND ASIDE / CAPITAL PRESERVATION",
   "weightsApplied": {
-    "macro": 0.75,
-    "positioning": 0,
-    "news": 0.25,
+    "macro": 0.55,
+    "positioning": 0.25,
+    "news": 0.2,
     "technical": 0
   },
   "layers": {
     "macro": {
-      "score": -50.1,
+      "score": -49.6,
       "bias": "STRONG_USD",
       "factors": [
         {
           "name": "Fast 2Y Yield Spread Impulse (3-Day Delta)",
-          "weight": 25,
+          "weight": 20,
           "rawReading": "Spread: +1.57% | 3d Delta: +0.05%",
           "normalizedScore": -0.572,
-          "weightedScore": -14.3,
+          "weightedScore": -11.44,
           "rationale": "Captures immediate front-end rate repricing within 72 hours of catalysts."
         },
         {
           "name": "Medium 2Y Yield Spread Momentum (10-Day Delta)",
-          "weight": 25,
-          "rawReading": "10d Delta: +0.10% (z-score: 1.65)",
+          "weight": 20,
+          "rawReading": "10d Delta: +0.10%",
           "normalizedScore": -0.6,
-          "weightedScore": -15,
+          "weightedScore": -12,
           "rationale": "Confirms multi-week monetary policy divergence and swing momentum."
         },
         {
-          "name": "10Y Sovereign Yield Spread Momentum (10-Day Delta)",
+          "name": "2Y Spread Structural Level Advantage (90d Z-Score)",
           "weight": 15,
+          "rawReading": "Spread: +1.57% (z-score: 0.64)",
+          "normalizedScore": -0.486,
+          "weightedScore": -7.29,
+          "rationale": "Structural carry advantage: rewards extreme persistent yield spreads even when momentum pauses."
+        },
+        {
+          "name": "Central Bank Policy Rate Spread (EFFR vs ECB DFR)",
+          "weight": 10,
+          "rawReading": "Differential: +1.38% (Fed 3.88% vs ECB 2.50%)",
+          "normalizedScore": -0.16,
+          "weightedScore": -1.6,
+          "rationale": "Official monetary policy stance gap anchoring the absolute front-end of the yield curve."
+        },
+        {
+          "name": "10Y Sovereign Yield Spread Momentum (10-Day Delta)",
+          "weight": 10,
           "rawReading": "Spread: +1.51% | 10d Delta: +0.09%",
           "normalizedScore": -0.61,
-          "weightedScore": -9.15,
+          "weightedScore": -6.1,
           "rationale": "Long-term economic growth divergence and sovereign bond term premium."
         },
         {
-          "name": "10Y TIPS Real Yield & Breakeven Advantage",
-          "weight": 15,
-          "rawReading": "US TIPS Real: 2.63% | 10Y Breakeven: 2.35%",
-          "normalizedScore": -0.637,
-          "weightedScore": -9.55,
-          "rationale": "Real rate return differential adjusted for forward inflation expectations."
+          "name": "10Y TIPS Real Yield Advantage (90d Rolling Z-Score)",
+          "weight": 10,
+          "rawReading": "US TIPS: 2.63% (90d z-score: 1.95) | Breakeven: 2.35%",
+          "normalizedScore": -0.915,
+          "weightedScore": -9.15,
+          "rationale": "Real rate return differential dynamically normalized over 90 days against regime shifts."
         },
         {
           "name": "European Energy Terms-of-Trade (Brent & Dutch TTF Gas)",
-          "weight": 10,
-          "rawReading": "TTF Gas: €73.9/MWh | Brent: $98.27",
-          "normalizedScore": -0.45,
-          "weightedScore": -4.5,
+          "weight": 8,
+          "rawReading": "TTF Gas: €73.9/MWh | Brent: $98.45",
+          "normalizedScore": -0.456,
+          "weightedScore": -3.65,
           "rationale": "European industrial energy import burden (Dutch TTF) vs US LNG export self-sufficiency."
         },
         {
           "name": "Global Risk Sentiment & VIX Velocity",
-          "weight": 10,
-          "rawReading": "VIX: 15.83 (-1.9 5d)",
-          "normalizedScore": 0.237,
-          "weightedScore": 2.37,
+          "weight": 7,
+          "rawReading": "VIX: 15.78 (-1.9 5d)",
+          "normalizedScore": 0.239,
+          "weightedScore": 1.67,
           "rationale": "Global risk-off dollar liquidity hoarding vs risk-on pro-cyclical euro flows."
         }
       ],
@@ -158,7 +174,7 @@
         "spread2y": 1.574,
         "spread2yFastDelta3d": 0.052,
         "spread2yMedDelta10d": 0.104,
-        "spread2yZScore": 1.6518936134503908,
+        "spread2yZScore": 0.637239997843193,
         "us10y": 4.96,
         "de10y": 3.4527398521,
         "spread10y": 1.507,
@@ -170,6 +186,7 @@
         "liveEcbRate": 2.5,
         "currentRateDifferential": 1.38,
         "rateDifferential30dChange": -2.65,
+        "policyScore": -0.16,
         "rateRegime": "WIDENING_USD_ADVANTAGE"
       },
       "rawMetrics": {
@@ -177,15 +194,16 @@
         "de2y": 3.135563132,
         "us10y": 4.96,
         "de10y": 3.4527398521,
-        "brent": 98.2699966430664,
-        "vix": 15.829999923706055
+        "brent": 98.44999694824219,
+        "vix": 15.779999732971191
       },
       "realYields": {
         "us10yTips": 2.63,
-        "us10yBreakeven": 2.35
+        "us10yBreakeven": 2.35,
+        "rollingZScore": 1.95
       },
       "energy": {
-        "brent": 98.2699966430664,
+        "brent": 98.44999694824219,
         "dutchTtfGas": 73.92
       }
     },
@@ -228,7 +246,7 @@
           "title": "EUR/USD, Gold Forecast: Two trades to watch",
           "source": "www.stonex.com",
           "url": "https://www.stonex.com/en-gb/news-and-analysis/eur-usd-gold-forecast-two-trades-to-watch-2026-09-23/",
-          "date": "19 hours ago",
+          "date": "20 hours ago",
           "sentiment": "USD_BULLISH",
           "score": -0.8,
           "snippet": "EUR/USD falls to a 2-month low despite Eurozone growth picking up. Gold under pressure as a stronger USD offsets falling oil prices."
@@ -312,21 +330,21 @@
           "country": "EUR",
           "impact": "Medium",
           "date": "2026-09-21T11:00:00-04:00",
-          "hoursUntil": -64.5
+          "hoursUntil": -65
         },
         {
           "title": "ECB President Lagarde Speaks",
           "country": "EUR",
           "impact": "Medium",
           "date": "2026-09-22T07:00:00-04:00",
-          "hoursUntil": -44.5
+          "hoursUntil": -45
         },
         {
           "title": "President Trump Speaks",
           "country": "USD",
           "impact": "Medium",
           "date": "2026-09-22T09:55:00-04:00",
-          "hoursUntil": -41.6
+          "hoursUntil": -42.1
         },
         {
           "title": "French Flash Manufacturing PMI",
@@ -335,7 +353,7 @@
           "date": "2026-09-23T03:15:00-04:00",
           "forecast": "50.9",
           "previous": "51.5",
-          "hoursUntil": -24.3
+          "hoursUntil": -24.7
         },
         {
           "title": "French Flash Services PMI",
@@ -344,7 +362,7 @@
           "date": "2026-09-23T03:15:00-04:00",
           "forecast": "48.3",
           "previous": "48.4",
-          "hoursUntil": -24.3
+          "hoursUntil": -24.7
         },
         {
           "title": "German Flash Manufacturing PMI",
@@ -353,7 +371,7 @@
           "date": "2026-09-23T03:30:00-04:00",
           "forecast": "54.1",
           "previous": "54.1",
-          "hoursUntil": -24
+          "hoursUntil": -24.5
         },
         {
           "title": "German Flash Services PMI",
@@ -362,7 +380,7 @@
           "date": "2026-09-23T03:30:00-04:00",
           "forecast": "49.9",
           "previous": "48.5",
-          "hoursUntil": -24
+          "hoursUntil": -24.5
         },
         {
           "title": "Unemployment Claims",
@@ -371,7 +389,7 @@
           "date": "2026-09-24T08:30:00-04:00",
           "forecast": "201K",
           "previous": "196K",
-          "hoursUntil": 5
+          "hoursUntil": 4.5
         },
         {
           "title": "Revised UoM Consumer Sentiment",
@@ -380,7 +398,7 @@
           "date": "2026-09-25T10:00:00-04:00",
           "forecast": "47.4",
           "previous": "47.8",
-          "hoursUntil": 30.5
+          "hoursUntil": 30
         },
         {
           "title": "Revised UoM Inflation Expectations",
@@ -388,25 +406,25 @@
           "impact": "Medium",
           "date": "2026-09-25T10:00:00-04:00",
           "previous": "4.6%",
-          "hoursUntil": 30.5
+          "hoursUntil": 30
         }
       ],
       "upcomingHighImpact": [],
       "eventRiskActive": false
     },
     "technical": {
-      "score": -56,
-      "currentPrice": 1.1395,
+      "score": -55.8,
+      "currentPrice": 1.1397,
       "weeklyTrend": "WEEKLY_BEARISH",
       "sma20w": 1.1541,
       "sma20": 1.156,
       "sma20SlopePips": -11,
       "sma50": 1.154,
       "sma200": 1.1625,
-      "rsiWilder": 26.3,
+      "rsiWilder": 26.6,
       "rsiScore": 12,
       "rsiExhaustionState": "OVERSOLD_EXHAUSTION",
-      "atrPips": 51,
+      "atrPips": 52,
       "localSwingHigh5d": 1.1495,
       "localSwingLow5d": 1.1373,
       "swingHigh20": 1.1654,
@@ -416,36 +434,36 @@
     }
   },
   "tradePlan": {
-    "regime": "BEARISH",
-    "action": "SELL EUR/USD (Limit Order on Retracement to Value)",
-    "conviction": "MODERATE",
+    "regime": "NEUTRAL_RANGE",
+    "action": "STAND ASIDE / CAPITAL PRESERVATION",
+    "conviction": "STAND_ASIDE",
     "rateRegimeFlag": "WIDENING_USD_ADVANTAGE",
     "positioningRegimeFlag": "EXTREME_DIVERGENCE_REVERSAL",
     "vetoTriggered": false,
     "eventRiskActive": false,
-    "entryType": "MICRO_PULLBACK_RETEST",
-    "entryZone": "1.1442 - 1.1472 (Limit entry on pullback closer to 5d resistance)",
-    "entryMid": 1.1457,
-    "stopLossPrice": 1.1513,
-    "stopDistancePips": 56,
-    "target1Price": 1.1345,
-    "target1Pips": 112,
-    "target1RR": "1 : 2.0",
-    "target2Price": 1.1233,
-    "target2Pips": 224,
-    "target2RR": "1 : 4.0",
-    "dailyAtrPips": 51,
-    "holdingHorizon": "10 to 25 trading days (Multi-Week Swing Leg)",
+    "entryType": "STAND_ASIDE",
+    "entryZone": "Local 5d Range: [Floor: 1.1373 | Ceiling: 1.1495]",
+    "entryMid": 1.1513,
+    "stopLossPrice": 0,
+    "stopDistancePips": 0,
+    "target1Price": 0,
+    "target1Pips": 0,
+    "target1RR": "N/A",
+    "target2Price": 0,
+    "target2Pips": 0,
+    "target2RR": "N/A",
+    "dailyAtrPips": 52,
+    "holdingHorizon": "Wait for macro yield divergence or structural breakout",
     "sizing": {
       "accountEquity": 50000,
-      "riskPercentage": 1,
-      "dollarRisk": 500,
-      "stopDistancePips": 56,
+      "riskPercentage": 0,
+      "dollarRisk": 0,
+      "stopDistancePips": 0,
       "pipValuePerLot": 10,
       "sizingMultiplier": 1,
-      "effectiveLots": 0.89,
-      "recommendedLots": 0.89,
-      "miniLots": 9
+      "effectiveLots": 0,
+      "recommendedLots": 0,
+      "miniLots": 0
     }
   }
 }

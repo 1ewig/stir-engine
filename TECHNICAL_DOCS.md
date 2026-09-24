@@ -103,24 +103,34 @@ Unbounded metrics are normalized to the range $[-1.0, +1.0]$ using:
 $$\text{normalizedScore} = \tanh\left(\frac{x}{\sigma}\right)$$
 Where $\sigma$ represents the characteristic scale or volatility threshold of that metric.
 
-### Layer 1: Macro Formulas
-1. **Fast 2Y Spread Impulse (3-Day Delta, 25% Layer Weight):**
+### Layer 1: Macro Formulas (8 Internal Sub-Factors)
+1. **Fast 2Y Spread Impulse (3-Day Delta, 20% Internal Weight):**
    $$\Delta_{3d} = S_{2Y}(t) - S_{2Y}(t-3)$$
    $$\text{Score}_{\text{fast}} = -\tanh\left(\frac{\Delta_{3d}}{0.08}\right)$$
    *(8 bps widening towards US within 72h represents a strong institutional repricing).*
-2. **Medium 2Y Spread Momentum (10-Day Delta, 25% Layer Weight):**
+2. **Medium 2Y Spread Momentum (10-Day Delta, 20% Internal Weight):**
    $$\Delta_{10d} = S_{2Y}(t) - S_{2Y}(t-10)$$
    $$\text{Score}_{\text{med}} = -\tanh\left(\frac{\Delta_{10d}}{0.15}\right)$$
    *(15 bps move over 10 trading days confirms multi-week swing trend).*
-3. **10Y Sovereign Yield Spread Momentum (15% Layer Weight):**
+3. **2Y Spread Structural Level Advantage (90-Day Z-Score, 15% Internal Weight):**
+   $$Z_{\text{2Y}} = \frac{S_{2Y}(t) - \mu_{90d}}{\sigma_{90d}}$$
+   $$\text{Score}_{\text{level2Y}} = -\tanh\left(\frac{Z_{\text{2Y}}}{1.2}\right)$$
+   *(Eliminates plateau blindness: rewards persistent wide carry advantage even when delta stalls).*
+4. **Central Bank Policy Rate Spread (EFFR vs. ECB DFR, 10% Internal Weight):**
+   $$\text{PolicyDiff} = \text{EFFR} - \text{ECB}_{\text{DFR}}$$
+   $$\text{Score}_{\text{policy}} = 0.70 \cdot \left(-\tanh\left(\frac{\text{PolicyDiff}}{1.75}\right)\right) + 0.30 \cdot \left(-\tanh\left(\frac{\Delta_{30d}\text{PolicyDiff}}{0.35}\right)\right)$$
+5. **10Y Sovereign Yield Spread Momentum (10-Day Delta, 10% Internal Weight):**
    $$\text{Score}_{10Y} = -\tanh\left(\frac{\Delta_{10d}^{10Y}}{0.12}\right)$$
-4. **10Y Real TIPS Advantage (15% Layer Weight):**
-   $$\text{Score}_{\text{real}} = -\tanh\left(\frac{\text{TIPS}_{\text{US}} - 1.5}{1.5}\right)$$
-5. **Energy Terms of Trade (10% Layer Weight):**
+6. **10Y Real TIPS Advantage (90-Day Rolling Z-Score, 10% Internal Weight):**
+   $$Z_{\text{TIPS}} = \frac{\text{TIPS}_{10Y}(t) - \mu_{90d}(\text{TIPS})}{\sigma_{90d}(\text{TIPS})}$$
+   $$\text{Score}_{\text{real}} = -\tanh\left(Z_{\text{TIPS}} \times 0.8\right)$$
+   *(Adapts dynamically to interest rate regimes without arbitrary fixed scalars).*
+7. **Energy Terms of Trade (Dutch TTF Gas + Brent, 8% Internal Weight):**
    Combines European TTF gas burden ($\frac{\text{TTF} - 35}{40}$) with Brent Crude 30-day Z-score:
    $$\text{Score}_{\text{energy}} = -\text{clamp}\left(0.4 \cdot \tanh(Z_{\text{Brent}}, 0.6) + 0.6 \cdot \tanh(\text{TTF}_{\text{burden}}, 0.8), -1.0, 1.0\right)$$
-6. **Risk Regime & VIX Velocity (10% Layer Weight):**
+8. **Risk Regime & VIX Velocity (7% Internal Weight):**
    $$\text{VIX}_{\text{velocity}} = \text{VIX}(t) - \text{VIX}(t-5)$$
+   $$\text{Score}_{\text{vix}} = 0.60 \cdot \text{Score}_{\text{level}}(\text{VIX}) + 0.40 \cdot \text{Score}_{\text{velocity}}(\text{VIX}_{5d})$$
 
 ### Layer 2: Positioning (CoT) Formulas
 * **52-Week CoT Index (%):**

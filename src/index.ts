@@ -77,7 +77,7 @@ export async function executeFullSystem(config: SystemConfig = DEFAULT_CONFIG): 
       "Score (-100 to +100)": macro.score,
       "Weight": `${(w.macro * 100).toFixed(0)}%`,
       "Weighted Pts": (macro.score * w.macro).toFixed(1),
-      "Continuous Metric": `2Y: +${macro.yieldSpreads.spread2y.toFixed(2)}% | 10Y Real TIPS: ${macro.realYields?.us10yTips.toFixed(2)}% | TTF Gas: €${macro.energy?.dutchTtfGas.toFixed(1)}/MWh`
+      "Continuous Metric": `2Y: +${macro.yieldSpreads.spread2y.toFixed(2)}% (z: ${macro.yieldSpreads.spread2yZScore.toFixed(1)}) | Policy: +${macro.rateMetrics.currentRateDifferential.toFixed(2)}% | TIPS: ${macro.realYields?.us10yTips.toFixed(2)}% (z: ${macro.realYields?.rollingZScore ?? 'N/A'})`
     },
     "Layer 2: CFTC CoT Flow Divergence": {
       "Score (-100 to +100)": positioning.score,
