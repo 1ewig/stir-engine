@@ -166,10 +166,16 @@ The engine includes a full **Convex** backend integration for automated hourly e
 ```
 convex/
 ├── schema.ts         # Strictly typed tables (audit_reports, latest_signal, macro_indicators, calendar_events, news_stream)
-├── crons.ts          # Native hourly cron scheduler (runs at :00 UTC)
+│                     # Includes timestampMs epoch indexes for fast numerical range slicing
+├── crons.ts          # Native cron scheduler:
+│                     # • Hourly execution (:00 UTC) for 4-pillar analysis & DB persistence
+│                     # • Weekly storage retention (Sundays 02:00 UTC) pruning audits >90 days
 ├── engine.ts         # Node.js action running the 4-pillar engine & internal mutations
-├── mutations.ts      # Internal mutations persisting reports, indicators, and calendar data
-└── queries.ts        # Reactive queries for frontend dashboards (getLatestSignal, getAuditHistory, etc.)
+├── mutations.ts      # Internal mutations (saveAuditReport, pruneOldAuditReports)
+└── queries.ts        # Reactive queries for frontend dashboards:
+                      # • getLatestSignal (singleton O(1) reactive trade plan)
+                      # • getMacroIndicatorsRange (millisecond range slicing for charts)
+                      # • getAuditHistory, getCalendarEvents, getNewsStream
 ```
 
 ### Initializing & Deploying with Convex
@@ -197,6 +203,9 @@ convex/
 
    # Query the latest active trade signal & regime
    bun convex run queries:getLatestSignal
+
+   # Query macro indicator time-series for charting (last 7 days by default)
+   bun convex run queries:getMacroIndicatorsRange
    ```
 
 ---
