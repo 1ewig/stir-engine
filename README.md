@@ -1,12 +1,12 @@
 # EUR/USD Institutional Swing Trading Engine
 
-> **A fundamental-first quantitative engine designed for 2-week to 1-month EUR/USD swing legs, driven by sovereign rate velocity, energy terms of trade, CFTC positioning divergence, and real-time news flow.**
+> **A fundamental-first quantitative engine designed for 2-week to 1-month EUR/USD swing legs, driven by sovereign rate velocity, energy terms of trade, CFTC positioning divergence, modular AI semantic analysis, and real-time news flow.**
 
 Most retail trading bots try to predict currency moves using lagging chart indicators on 5-minute candles—and consistently get chopped up. 
 
 Institutional foreign exchange desks at major investment banks and macro hedge funds approach the market differently: **currencies trade on macro divergence, real yield differentials, terms of trade, and institutional positioning imbalances.**
 
-This project is a TypeScript/Bun quantitative engine that pulls live, official macroeconomic data, analyzes live market sentiment, and generates an asymmetric swing execution plan with strict capital preservation vetoes.
+This project is a TypeScript/Bun quantitative engine that pulls live macroeconomic data, performs qualitative semantic classification via a modular AI layer, computes deterministic quantitative scoring matrices, and generates an asymmetric swing execution plan with strict capital preservation vetoes.
 
 ---
 
@@ -28,7 +28,7 @@ The engine synthesizes market reality across four core pillars:
 │                                                                         │
 │  1. Macro Fundamentals & Sovereign Yields                  [55% Weight] │
 │  2. Institutional Positioning & Flow (CFTC CoT)            [25% Weight] │
-│  3. News Sentiment & Catalyst Calendar (TinyFish)          [20% Weight] │
+│  3. News Sentiment & Catalyst Calendar (Modular AI)        [20% Weight] │
 │  4. Market Structure & Trade Geometry                      [ 0% Default]│
 └────────────────────────────────────┬────────────────────────────────────┘
                                      │
@@ -61,11 +61,14 @@ Addresses the classic "exchange rate disconnect" where price diverges from macro
 * Computes the **52-week percentile index** (detecting crowded extremes $>80\%$ or $<20\%$) and 4-week net contract momentum.
 * **Smart Squeeze Detection:** If macro is bearish but hedge funds are aggressively covering shorts at 52-week positioning lows, trend-following shorts are prohibited to protect capital from short squeezes.
 
-### 3. Live News Sentiment & Event-Risk Guard (20% Default Weight)
-* **Real-Time News Stream:** Integrates the `@tiny-fish/sdk` to query global financial outlets (Reuters, Bloomberg, ForexFactory, DailyFX, etc.) for live central bank and rate expectations, scoring headlines from `-100` (USD Bullish) to `+100` (EUR Bullish).
-* **Tier-1 Event Risk Guard:** Fetches weekly high- and medium-impact economic releases (NFP, CPI, PMIs, Fed/ECB meetings). If an ultra-high-impact release is due in $<6$ hours, an execution blackout veto is triggered so you never gamble into a binary volatility spike.
+### 3. News Sentiment & Catalyst Calendar (20% Default Weight)
+* **Modular AI Semantic Classifier (`src/ai/`):** Utilizes **Groq (`qwen/qwen3.8-27b`)** for ultra-fast (~500ms) qualitative semantic classification (policy bias, intensity, catalyst driver).
+* **Deterministic Code Math:** The LLM is strictly prohibited from doing arithmetic. All directional scoring, magnitude mapping, weighting, and normalization are computed deterministically in pure TypeScript.
+* **Dual-Vector Discovery:** Concurrently queries **Fed/USD** policy and **ECB/EUR** dynamics via `@tiny-fish/sdk`, restricted to top institutional financial domains (Reuters, Bloomberg, FT, WSJ) within a strict 48-hour freshness window.
+* **Multi-Tier Fallback:** If the LLM times out or rate limits, the engine smoothly falls back to an internal 28+ keyword dictionary NLP engine, and then to neutral baseline without interrupting other pillars.
+* **Tier-1 Event Risk Guard:** Fetches weekly high- and medium-impact economic releases. If an ultra-high-impact release is due in $<6$ hours, an execution blackout veto is triggered.
 
-### 4. Technical Structure & Risk Geometry (0% Default Scoring Weight)
+### 4. Market Structure & Trade Geometry (0% Default Scoring Weight)
 Technicals are **disabled by default from biasing the directional score** (avoiding curve-fitting and lagging signals). Instead, local structure is strictly used to anchor entry and invalidation:
 * **True Structural Invalidation:** Stops are never placed at arbitrary pip distances. They are anchored strictly outside the local 5-day swing highs/lows plus an ATR buffer.
 * **Location Guard:** If price is stretched far from resistance (e.g. after a 300-pip drop), the engine refuses to market sell. It demands a limit order retracement closer to value, ensuring asymmetric payoffs:
@@ -78,27 +81,29 @@ Technicals are **disabled by default from biasing the directional score** (avoid
 
 ### Prerequisites
 * [Bun](https://bun.sh/) (recommended for fast TypeScript execution) or Node.js v18+
-* Optional: A TinyFish API key for live news search (add to `.env.local`)
+* Optional API keys:
+  * TinyFish API key for live news search
+  * Groq API key for AI semantic classification
 
 ### Installation
 
 ```bash
 git clone <repo-url>
-cd "ai trading stuff"
+cd stir-engine
 bun install
 ```
 
 Configure your `.env.local` file:
 ```env
 tiny_fish_api=your_tinyfish_api_key_here
+GROQ_API_KEY=your_groq_api_key_here
 ```
-*(Note: If no TinyFish API key is present, the engine automatically falls back to neutral news sentiment while maintaining all calendar and macro feeds.)*
 
 ---
 
 ## Running the Engine
 
-### 1. Standard Run (Recommended: Macro + Positioning + News)
+### 1. Standard Run (Recommended: Macro + Positioning + AI News)
 ```bash
 bun run start
 # or:
@@ -135,13 +140,13 @@ When you run the engine, you will see a structured real-time audit:
 ┌──────────────────────────────────────┬──────────────────────┬────────┬──────────────┬─────────────────────────────────────────────────────────────────────────────────────┐
 │ Category                             │ Score (-100 to +100) │ Weight │ Weighted Pts │ Continuous Metric                                                                   │
 ├──────────────────────────────────────┼──────────────────────┼────────┼──────────────┼─────────────────────────────────────────────────────────────────────────────────────┤
-│ 1. Macro Fundamentals & Yields       │ -33.1                │ 55%    │ -18.2        │ 2Y: +1.49% | 10Y Real TIPS: 2.63% | TTF Gas: €73.9/MWh                              │
+│ 1. Macro Fundamentals & Yields       │ -16.8                │ 55%    │ -9.2         │ 2Y: +0.81% (z: -1.2) | Policy: +1.38% | TIPS: 2.63% (z: 0.86)                       │
 │ 2. Institutional Positioning & Flow  │ +50.0                │ 25%    │ +12.5        │ Index: 18% (EXTREME_DIVERGENCE_REVERSAL) | 4w Net: +9,359 | Sizing: 1x              │
-│ 3. News Sentiment & Calendar         │ -38.0                │ 20%    │ -7.6         │ Bias: USD_BULLISH | Event Risk: NORMAL | Headlines: 10                              │
-│ 4. Market Structure & Geometry       │ -56.3                │  0%    │  0.0         │ Trend: WEEKLY_BEARISH | RSI: 25.2 (Technicals Disabled from Scoring)                │
+│ 3. News Sentiment & Calendar         │ -86.9                │ 20%    │ -17.4        │ Bias: USD_BULLISH | Event Risk: NORMAL | Headlines: 8                               │
+│ 4. Market Structure & Geometry       │ -56.3                │  0%    │  0.0         │ Trend: WEEKLY_BEARISH | RSI: 25.1 (Technicals Disabled from Scoring)                │
 └──────────────────────────────────────┴──────────────────────┴────────┴──────────────┴─────────────────────────────────────────────────────────────────────────────────────┘
 
->>> COMPOSITE TRADING SCORE: -22.5 / 100 (Negative = USD Advantage, Positive = EUR Advantage) <<<
+>>> COMPOSITE TRADING SCORE: -14.1 / 100 (Negative = USD Advantage, Positive = EUR Advantage) <<<
 >>> REGIME & VERDICT:        STAND ASIDE / CAPITAL PRESERVATION <<<
 ```
 
@@ -162,28 +167,71 @@ The engine includes a full **Convex** backend integration for automated hourly e
 convex/
 ├── schema.ts         # Strictly typed tables (audit_reports, latest_signal, macro_indicators, calendar_events, news_stream)
 ├── crons.ts          # Native hourly cron scheduler (runs at :00 UTC)
-├── engine.ts         # Node.js action running the 4-layer engine & internal mutations
+├── engine.ts         # Node.js action running the 4-pillar engine & internal mutations
 ├── mutations.ts      # Internal mutations persisting reports, indicators, and calendar data
 └── queries.ts        # Reactive queries for frontend dashboards (getLatestSignal, getAuditHistory, etc.)
 ```
 
-### Initializing & Running with Convex
+### Initializing & Deploying with Convex
 
-1. **Log in & link your Convex project:**
+1. **Link your Convex project in development:**
    ```bash
    bun run convex:dev
    ```
-   Follow the CLI prompt to select or link your Convex project.
 
-2. **Add Environment Secrets to Convex (Dashboard or CLI):**
+2. **Sync Environment Secrets to Convex Cloud:**
    ```bash
-   bun convex env set tiny_fish_api="your_tinyfish_api_key_here"
+   bun convex env set tiny_fish_api="your_tinyfish_api_key"
+   bun convex env set GROQ_API_KEY="your_groq_api_key"
    ```
 
 3. **Deploy the Production Cron & Backend:**
    ```bash
    bun run convex:deploy
    ```
+
+4. **Trigger an On-Demand Cloud Run or Query Signals:**
+   ```bash
+   # Run on-demand execution on Convex cloud
+   bun convex run engine:runNow
+
+   # Query the latest active trade signal & regime
+   bun convex run queries:getLatestSignal
+   ```
+
+---
+
+## Project Structure
+
+```
+├── src/
+│   ├── index.ts             # Orchestrator & CLI entry point
+│   ├── types.ts             # Strict TypeScript interfaces & config defaults
+│   ├── dataProvider.ts      # Resilient data fetching, retries, caching, Wilder indicators
+│   ├── tradePlan.ts         # Asymmetric risk geometry, position sizing, & veto gates
+│   ├── ai/                  # Modular AI Qualitative Classification Layer
+│   │   ├── types.ts         # Semantic bias types & classification interfaces
+│   │   ├── groqProvider.ts  # Groq Qwen 3.8 27B implementation with timeout guard
+│   │   └── index.ts         # Pluggable AI provider facade
+│   └── layers/
+│       ├── macro.ts         # Yield spreads, TIPS real rates, TTF gas, Brent, central banks
+│       ├── positioning.ts   # CFTC CoT speculative positioning & squeeze detection
+│       ├── news.ts          # Dual-vector TinyFish news stream & Forex calendar guard
+│       └── technical.ts     # Multi-timeframe trend & local 5-day structural anchors
+├── convex/                  # Convex Cloud Cron & Reactive Database
+│   ├── schema.ts            # Typed database schema & indexes
+│   ├── crons.ts             # Hourly cron schedule
+│   ├── engine.ts            # Node.js cloud execution action
+│   ├── mutations.ts         # Internal DB write mutations
+│   └── queries.ts           # Real-time reactive query endpoints
+├── scripts/                 # Independent testing & benchmarking scripts
+│   ├── test_groq_models.ts  # Model benchmarking & semantic testing
+│   └── benchmark_round2.ts  # Multi-scenario accuracy benchmarks
+├── audit_report.json        # Persisted audit report from the latest run
+├── bun.lock                 # Bun lockfile
+├── package.json             # NPM / Bun scripts and dependencies
+└── tsconfig.json            # TypeScript configuration
+```
 
 ---
 
