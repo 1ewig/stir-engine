@@ -5,6 +5,8 @@
   "main": "src/index.ts",
   "scripts": {
     "start": "bun run src/index.ts",
+    "start:macro": "bun run src/index.ts --pure-macro",
+    "start:tech": "bun run src/index.ts --with-tech",
     "build": "tsc"
   },
   "keywords": [],

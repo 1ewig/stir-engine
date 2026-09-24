@@ -1,4 +1,4 @@
-import { DataSourceHealth, DEFAULT_CONFIG } from './types';
+import { DataSourceHealth, DEFAULT_CONFIG, CalendarEvent } from './types';
 
 // ============================================================================
 // DATA PROVIDER (CACHE, HEALTH TRACKING, RETRIES & TIMEOUT SIGNALS)
@@ -182,6 +182,71 @@ export async function fetchCftcEuroPositioning(): Promise<any[]> {
   }
   return [];
 }
+
+/**
+ * Fetch latest observation of any FRED series (e.g. TIPS DFII10, Breakeven T10YIE)
+ */
+export async function fetchFredValue(seriesId: string): Promise<number | null> {
+  const url = `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${seriesId}`;
+  const res = await dataProvider.fetchTextWithRetry(`FRED_${seriesId}`, url);
+  if (res.text) {
+    const lines = res.text.trim().split('\n').filter(l => l.includes(','));
+    const valid = lines.filter(l => !l.endsWith('.') && !l.includes('ND'));
+    if (valid.length > 0) {
+      const lastLine = valid[valid.length - 1];
+      const val = parseFloat(lastLine.split(',')[1]);
+      if (!isNaN(val)) return val;
+    }
+  }
+  return null;
+}
+
+/**
+ * Fetch Dutch TTF Natural Gas futures (primary European industrial energy benchmark)
+ */
+export async function fetchDutchTtfGas(): Promise<number> {
+  const url = 'https://query1.finance.yahoo.com/v8/finance/chart/TTF=F?range=5d&interval=1d';
+  const { data } = await dataProvider.fetchWithRetry<any>('Yahoo_Dutch_TTF_Gas', url);
+  const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+  if (typeof price === 'number' && price > 0) return parseFloat(price.toFixed(2));
+  const closes = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || [];
+  const validCloses = closes.filter((c: any): c is number => typeof c === 'number' && !isNaN(c));
+  if (validCloses.length > 0) return parseFloat(validCloses[validCloses.length - 1].toFixed(2));
+  return 73.9; // Safe baseline if feed times out
+}
+
+/**
+ * Fetch weekly high & medium impact economic calendar events from FairEconomy
+ */
+export async function fetchLiveEconomicCalendar(): Promise<CalendarEvent[]> {
+  const url = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
+  const { data } = await dataProvider.fetchWithRetry<any[]>('Economic_Calendar', url);
+  if (!Array.isArray(data)) return [];
+
+  const now = new Date();
+  const events: CalendarEvent[] = [];
+
+  for (const e of data) {
+    if ((e.country === 'USD' || e.country === 'EUR') && (e.impact === 'High' || e.impact === 'Medium')) {
+      const eventTime = new Date(e.date);
+      const hoursUntil = parseFloat(((eventTime.getTime() - now.getTime()) / (1000 * 60 * 60)).toFixed(1));
+      events.push({
+        title: e.title,
+        country: e.country,
+        impact: e.impact,
+        date: e.date,
+        forecast: e.forecast || undefined,
+        previous: e.previous || undefined,
+        hoursUntil
+      });
+    }
+  }
+
+  // Sort by hours until (earliest first)
+  events.sort((a, b) => a.hoursUntil - b.hoursUntil);
+  return events;
+}
+
 
 // ============================================================================
 // STATISTICAL & MATHEMATICAL HELPERS (CONTINUOUS NORMALIZATION)

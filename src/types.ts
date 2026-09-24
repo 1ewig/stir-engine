@@ -8,9 +8,10 @@ export interface SystemConfig {
   accountEquity: number;        // e.g. 50000 USD
   maxRiskPerTradePct: number;   // e.g. 1.0% = 0.01 ($500 risk)
   layerWeights: {
-    macro: number;              // default 0.50 (Two-speed sovereign yield spreads & macro momentum)
+    macro: number;              // default 0.40 (Two-speed sovereign yield spreads, real yields, energy ToT)
     positioning: number;        // default 0.25 (CFTC CoT divergence & institutional flow)
-    technical: number;          // default 0.25 (Weekly trend & local 5-day market structure)
+    news: number;               // default 0.15 (Live news sentiment & economic surprises)
+    technical: number;          // default 0.20 (Weekly trend & local 5-day market structure)
   };
   convictionThreshold: number;  // score threshold for trade activation (25.0)
   cacheTtlMs: number;           // in-memory API cache TTL (5 mins)
@@ -20,9 +21,10 @@ export const DEFAULT_CONFIG: SystemConfig = {
   accountEquity: 50000,
   maxRiskPerTradePct: 0.01,     // 1.0% risk per trade ($500 on $50k)
   layerWeights: {
-    macro: 0.50,
-    positioning: 0.25,
-    technical: 0.25
+    macro: 0.55,                // 55% Yields, Real Rates, Energy
+    positioning: 0.25,          // 25% CFTC CoT Flow Divergence
+    news: 0.20,                 // 20% News Sentiment & Economic Calendar
+    technical: 0.00             // 0% Technicals Disabled by default
   },
   convictionThreshold: 25.0,
   cacheTtlMs: 5 * 60 * 1000     // 5 minutes
@@ -99,6 +101,44 @@ export interface MacroLayerResult {
     brent: number;
     vix: number;
   };
+  realYields?: {
+    us10yTips: number;
+    us10yBreakeven: number;
+  };
+  energy?: {
+    brent: number;
+    dutchTtfGas: number;
+  };
+}
+
+export interface NewsItem {
+  title: string;
+  source: string;
+  url: string;
+  date?: string;
+  sentiment: 'USD_BULLISH' | 'EUR_BULLISH' | 'NEUTRAL';
+  score: number; // -1.0 (USD) to +1.0 (EUR)
+  snippet: string;
+}
+
+export interface CalendarEvent {
+  title: string;
+  country: 'USD' | 'EUR';
+  impact: 'High' | 'Medium' | 'Low';
+  date: string;
+  forecast?: string;
+  previous?: string;
+  hoursUntil: number;
+}
+
+export interface NewsAndCalendarResult {
+  score: number; // -100 to +100
+  bias: 'USD_BULLISH' | 'EUR_BULLISH' | 'NEUTRAL';
+  headlines: NewsItem[];
+  calendarEvents: CalendarEvent[];
+  upcomingHighImpact: CalendarEvent[];
+  eventRiskActive: boolean;
+  eventRiskReason?: string;
 }
 
 export interface CotPositioningMetrics {
@@ -167,6 +207,8 @@ export interface TradePlan {
   positioningRegimeFlag: string;
   vetoTriggered?: boolean;
   vetoReason?: string;
+  eventRiskActive?: boolean;
+  eventRiskReason?: string;
   entryType: 'LOCAL_BREAKOUT_CONFIRMATION' | 'MICRO_PULLBACK_RETEST' | 'STAND_ASIDE';
   entryZone: string;
   entryMid: number;
@@ -190,10 +232,11 @@ export interface SystemAuditReport {
   sourceHealth: DataSourceHealth[];
   compositeScore: number;
   verdict: string;
-  weightsApplied: { macro: number; positioning: number; technical: number };
+  weightsApplied: { macro: number; positioning: number; news?: number; technical: number };
   layers: {
     macro?: MacroLayerResult;
     positioning?: PositioningLayerResult;
+    news?: NewsAndCalendarResult;
     technical?: TechnicalLayerResult;
   };
   tradePlan?: TradePlan;

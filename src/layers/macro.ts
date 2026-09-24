@@ -10,6 +10,8 @@ import {
   dataProvider,
   fetchUstYieldSeries,
   fetchEcbBenchmarkYield,
+  fetchFredValue,
+  fetchDutchTtfGas,
   calcZScore,
   calcPercentile,
   tanhNormalize
@@ -150,25 +152,30 @@ export async function fetchHistoricalAsset(name: string, symbol: string): Promis
 }
 
 export async function runMacroEngine(): Promise<MacroLayerResult> {
-  console.log("Analyzing Layer 1: Two-Speed Yield Spread Acceleration Engine (3d Fast / 10d Medium) (50% weight)...");
+  console.log("Analyzing Layer 1: Two-Speed Yield Velocity, Real Yields & Energy Terms of Trade...");
 
-  const [liveRates, us2ySeries, de2ySeries, us10ySeries, de10ySeries, brent, vix] = await Promise.all([
+  const [liveRates, us2ySeries, de2ySeries, us10ySeries, de10ySeries, brent, vix, us10yTipsVal, us10yBreakevenVal, dutchTtfGasVal] = await Promise.all([
     fetchLivePolicyRates(),
     fetchUstYieldSeries('DGS2'),
     fetchEcbBenchmarkYield('2Y'),
     fetchUstYieldSeries('DGS10'),
     fetchEcbBenchmarkYield('10Y'),
     fetchHistoricalAsset('Brent_Crude', 'BZ=F'),
-    fetchHistoricalAsset('VIX_Index', '^VIX')
+    fetchHistoricalAsset('VIX_Index', '^VIX'),
+    fetchFredValue('DFII10'),
+    fetchFredValue('T10YIE'),
+    fetchDutchTtfGas()
   ]);
+
+  const us10yTips = us10yTipsVal ?? 2.63;
+  const us10yBreakeven = us10yBreakevenVal ?? 2.35;
+  const dutchTtfGas = dutchTtfGasVal ?? 73.9;
 
   // Current Yield Readings
   const us2yCurrent = us2ySeries[us2ySeries.length - 1] ?? 3.85;
   const de2yCurrent = de2ySeries[de2ySeries.length - 1] ?? 2.10;
 
   // 1. Two-Speed 2Y Spread Velocity:
-  // Fast (3-day delta) captures immediate post-catalyst repricing (CPI/NFP/FOMC)
-  // Medium (10-day delta) confirms 2-week swing continuation
   const us2yPast3 = us2ySeries[Math.max(0, us2ySeries.length - 4)] ?? us2yCurrent;
   const de2yPast3 = de2ySeries[Math.max(0, de2ySeries.length - 4)] ?? de2yCurrent;
   const us2yPast10 = us2ySeries[Math.max(0, us2ySeries.length - 11)] ?? us2yCurrent;
@@ -215,29 +222,30 @@ export async function runMacroEngine(): Promise<MacroLayerResult> {
   };
 
   // Continuous Scoring Logic:
-  // Negative = USD Advantage, Positive = EUR Advantage
-
-  // 1. Fast 2Y Yield Spread Impulse (3-day delta) (30% weight)
-  // An 8 bps (0.08%) move in 3 days is a fast institutional impulse
+  // 1. Fast 2Y Yield Spread Impulse (3-day delta) (25% weight)
   const fastScore = -tanhNormalize(spread2yFastDelta3d / 0.08);
 
-  // 2. Medium 2Y Yield Spread Momentum (10-day delta) (30% weight)
-  // A 15 bps (0.15%) move over 10 trading days confirms swing trend
+  // 2. Medium 2Y Yield Spread Momentum (10-day delta) (25% weight)
   const medScore = -tanhNormalize(spread2yMedDelta10d / 0.15);
 
-  // 3. 10-Year Spread Divergence (10-day delta) (20% weight)
+  // 3. 10-Year Spread Divergence (10-day delta) (15% weight)
   const score10y = -tanhNormalize(spread10yDelta10d / 0.12);
 
-  // 4. European Energy Terms-of-Trade (Brent Crude 15d change / z-score) (10% weight)
-  const brentZ = brent?.zScore30d ?? 0.0;
-  const brentScore = -tanhNormalize(brentZ, 0.75);
+  // 4. Real Yield & Inflation Breakeven Advantage (15% weight)
+  // US 10Y TIPS real yield > 2.0% provides substantial real carry over Eurozone real yields (~0.8%)
+  const realYieldAdvantageScore = -tanhNormalize((us10yTips - 1.5) / 1.5);
 
-  // 5. Global Risk Regime (VIX Level & 5d Velocity) (10% weight)
+  // 5. European Energy Terms-of-Trade (Brent Crude + Dutch TTF Natural Gas) (10% weight)
+  // High European gas price (>50 EUR/MWh) or elevated Brent (>85) severely penalizes EUR trade balance
+  const ttfBurden = Math.max(0, (dutchTtfGas - 35) / 40);
+  const brentZ = brent?.zScore30d ?? 0.0;
+  const energyScore = -Math.min(1.0, Math.max(-1.0, (tanhNormalize(brentZ, 0.6) * 0.4) + (tanhNormalize(ttfBurden, 0.8) * 0.6)));
+
+  // 6. Global Risk Regime (VIX Level & 5d Velocity) (10% weight)
   const vixCurrent = vix?.current ?? 15.0;
   const vixCloses = vix?.closes || [];
   const vixPast5 = vixCloses.length >= 6 ? vixCloses[vixCloses.length - 6] : vixCurrent;
   const vix5dChange = vixCurrent - vixPast5;
-  // High VIX or spiking VIX (+3 pts in 5d) = USD safe haven demand (-)
   const vixVelocityScore = vix5dChange > 2.5 ? -0.4 : vix5dChange < -2.5 ? +0.3 : 0.0;
   const vixLevelScore = vixCurrent >= 20 ? -tanhNormalize((vixCurrent - 20) / 8) : +tanhNormalize((20 - vixCurrent) / 10);
   const vixScore = parseFloat(((vixLevelScore * 0.6) + (vixVelocityScore * 0.4)).toFixed(3));
@@ -254,7 +262,7 @@ export async function runMacroEngine(): Promise<MacroLayerResult> {
   const factors: MacroFactor[] = [
     {
       name: "Fast 2Y Yield Spread Impulse (3-Day Delta)",
-      weight: 30,
+      weight: 25,
       rawReading: `Spread: +${spread2yCurrent.toFixed(2)}% | 3d Delta: ${spread2yFastDelta3d >= 0 ? '+' : ''}${spread2yFastDelta3d.toFixed(2)}%`,
       normalizedScore: parseFloat(fastScore.toFixed(3)),
       weightedScore: 0,
@@ -262,7 +270,7 @@ export async function runMacroEngine(): Promise<MacroLayerResult> {
     },
     {
       name: "Medium 2Y Yield Spread Momentum (10-Day Delta)",
-      weight: 30,
+      weight: 25,
       rawReading: `10d Delta: ${spread2yMedDelta10d >= 0 ? '+' : ''}${spread2yMedDelta10d.toFixed(2)}% (z-score: ${spread2yZScore.toFixed(2)})`,
       normalizedScore: parseFloat(medScore.toFixed(3)),
       weightedScore: 0,
@@ -270,19 +278,27 @@ export async function runMacroEngine(): Promise<MacroLayerResult> {
     },
     {
       name: "10Y Sovereign Yield Spread Momentum (10-Day Delta)",
-      weight: 20,
+      weight: 15,
       rawReading: `Spread: +${spread10yCurrent.toFixed(2)}% | 10d Delta: ${spread10yDelta10d >= 0 ? '+' : ''}${spread10yDelta10d.toFixed(2)}%`,
       normalizedScore: parseFloat(score10y.toFixed(3)),
       weightedScore: 0,
       rationale: "Long-term economic growth divergence and sovereign bond term premium."
     },
     {
-      name: "European Energy Terms-of-Trade (Brent Crude)",
-      weight: 10,
-      rawReading: `$${brent?.current?.toFixed(2) || '95.00'} (30d z-score: ${brentZ.toFixed(2)})`,
-      normalizedScore: parseFloat(brentScore.toFixed(3)),
+      name: "10Y TIPS Real Yield & Breakeven Advantage",
+      weight: 15,
+      rawReading: `US TIPS Real: ${us10yTips.toFixed(2)}% | 10Y Breakeven: ${us10yBreakeven.toFixed(2)}%`,
+      normalizedScore: parseFloat(realYieldAdvantageScore.toFixed(3)),
       weightedScore: 0,
-      rationale: "Oil price burden on Eurozone trade balance vs US energy self-sufficiency."
+      rationale: "Real rate return differential adjusted for forward inflation expectations."
+    },
+    {
+      name: "European Energy Terms-of-Trade (Brent & Dutch TTF Gas)",
+      weight: 10,
+      rawReading: `TTF Gas: €${dutchTtfGas.toFixed(1)}/MWh | Brent: $${brent?.current?.toFixed(2) || '95.00'}`,
+      normalizedScore: parseFloat(energyScore.toFixed(3)),
+      weightedScore: 0,
+      rationale: "European industrial energy import burden (Dutch TTF) vs US LNG export self-sufficiency."
     },
     {
       name: "Global Risk Sentiment & VIX Velocity",
@@ -322,6 +338,14 @@ export async function runMacroEngine(): Promise<MacroLayerResult> {
       de10y: de10yCurrent,
       brent: brent?.current ?? 95.0,
       vix: vixCurrent
+    },
+    realYields: {
+      us10yTips,
+      us10yBreakeven
+    },
+    energy: {
+      brent: brent?.current ?? 95.0,
+      dutchTtfGas
     }
   };
 }

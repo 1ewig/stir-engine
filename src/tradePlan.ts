@@ -2,6 +2,7 @@ import {
   MacroLayerResult,
   PositioningLayerResult,
   TechnicalLayerResult,
+  NewsAndCalendarResult,
   TradePlan,
   SystemConfig,
   DEFAULT_CONFIG
@@ -11,6 +12,7 @@ import {
 // ASYMMETRIC INSTITUTIONAL SWING TRADE PLAN GENERATOR
 // Resolves Stop Clipping: Stop loss is STRICTLY anchored outside the 5-day structure.
 // Resolves Factor Smearing: Implements hard Confluence Veto Gate against flow squeezes.
+// Protects Against Event Risk: Vetoes entries immediately prior to Tier-1 releases.
 // ============================================================================
 
 export function buildTradePlan(
@@ -18,7 +20,8 @@ export function buildTradePlan(
   macro: MacroLayerResult,
   positioning: PositioningLayerResult,
   tech: TechnicalLayerResult,
-  config: SystemConfig = DEFAULT_CONFIG
+  config: SystemConfig = DEFAULT_CONFIG,
+  news?: NewsAndCalendarResult
 ): TradePlan {
   const equity = config.accountEquity;
   const riskPct = config.maxRiskPerTradePct;
@@ -30,11 +33,52 @@ export function buildTradePlan(
   const sizingMult = positioning.metrics.sizingMultiplier;
 
   // ==========================================================================
-  // CONFLUENCE VETO GATE: PREVENTS TRADING INTO ADVERSE SQUEEZES & LIQUIDATIONS
+  // CONFLUENCE VETO GATE: PREVENTS TRADING INTO ADVERSE SQUEEZES & EVENT RISK
   // ==========================================================================
 
+  // VETO 0: Imminent Tier-1 Economic Calendar Event Risk (< 6h window)
+  if (news?.eventRiskActive && news.eventRiskReason) {
+    return {
+      regime: 'NEUTRAL_RANGE',
+      action: 'STAND ASIDE (TIER_1_EVENT_RISK_GUARD)',
+      conviction: 'STAND_ASIDE',
+      rateRegimeFlag: rateRegime,
+      positioningRegimeFlag: posRegime,
+      vetoTriggered: true,
+      vetoReason: news.eventRiskReason,
+      eventRiskActive: true,
+      eventRiskReason: news.eventRiskReason,
+      entryType: 'STAND_ASIDE',
+      entryZone: `Event Blackout Window. Local Price: ${tech.currentPrice}`,
+      entryMid: tech.currentPrice,
+      stopLossPrice: 0,
+      stopDistancePips: 0,
+      target1Price: 0,
+      target1Pips: 0,
+      target1RR: 'N/A',
+      target2Price: 0,
+      target2Pips: 0,
+      target2RR: 'N/A',
+      dailyAtrPips: tech.atrPips,
+      holdingHorizon: 'Stand aside until high-impact release passes and liquidity normalizes',
+      sizing: {
+        accountEquity: equity,
+        riskPercentage: 0,
+        dollarRisk: 0,
+        stopDistancePips: 0,
+        pipValuePerLot: pipValue,
+        sizingMultiplier: 1.0,
+        effectiveLots: 0,
+        recommendedLots: 0,
+        miniLots: 0
+      }
+    };
+  }
+
+  const positioningActive = (config.layerWeights?.positioning ?? 0.25) > 0;
+
   // VETO 1: Macro is Bearish, but CoT flags Bullish Short Squeeze Divergence
-  if (finalScore <= -config.convictionThreshold && positioning.metrics.regime === 'EXTREME_DIVERGENCE_REVERSAL') {
+  if (positioningActive && finalScore <= -config.convictionThreshold && positioning.metrics.regime === 'EXTREME_DIVERGENCE_REVERSAL') {
     return {
       regime: 'NEUTRAL_RANGE',
       action: 'STAND ASIDE (FLOW_DIVERGENCE_SQUEEZE_VETO)',
@@ -43,6 +87,8 @@ export function buildTradePlan(
       positioningRegimeFlag: posRegime,
       vetoTriggered: true,
       vetoReason: `Macro is USD-bullish, but institutional hedge funds are actively covering shorts (+${positioning.metrics.netPosition4wChange.toLocaleString()} contracts in 4w) at 52-week positioning lows (${positioning.metrics.cotIndex52w}% CoT Index). High risk of an aggressive short squeeze; trend-following shorts prohibited.`,
+      eventRiskActive: news?.eventRiskActive ?? false,
+      eventRiskReason: news?.eventRiskReason,
       entryType: 'STAND_ASIDE',
       entryZone: `Local Support: ${tech.localSwingLow5d} | Resistance Pivot: ${tech.localSwingHigh5d}`,
       entryMid: tech.currentPrice,
@@ -71,7 +117,7 @@ export function buildTradePlan(
   }
 
   // VETO 2: Macro is Bullish, but CoT flags Bearish Long Liquidation Divergence
-  if (finalScore >= config.convictionThreshold && positioning.metrics.regime === 'EXTREME_DIVERGENCE_REVERSAL') {
+  if (positioningActive && finalScore >= config.convictionThreshold && positioning.metrics.regime === 'EXTREME_DIVERGENCE_REVERSAL') {
     return {
       regime: 'NEUTRAL_RANGE',
       action: 'STAND ASIDE (FLOW_DIVERGENCE_LIQUIDATION_VETO)',
@@ -80,6 +126,8 @@ export function buildTradePlan(
       positioningRegimeFlag: posRegime,
       vetoTriggered: true,
       vetoReason: `Macro is EUR-bullish, but institutional hedge funds are actively liquidating longs (${positioning.metrics.netPosition4wChange.toLocaleString()} contracts in 4w) at 52-week positioning highs (${positioning.metrics.cotIndex52w}% CoT Index). High risk of a liquidation cascade; trend-following longs prohibited.`,
+      eventRiskActive: news?.eventRiskActive ?? false,
+      eventRiskReason: news?.eventRiskReason,
       entryType: 'STAND_ASIDE',
       entryZone: `Local Support: ${tech.localSwingLow5d} | Resistance Pivot: ${tech.localSwingHigh5d}`,
       entryMid: tech.currentPrice,
@@ -169,6 +217,8 @@ export function buildTradePlan(
       rateRegimeFlag: rateRegime,
       positioningRegimeFlag: posRegime,
       vetoTriggered: false,
+      eventRiskActive: news?.eventRiskActive ?? false,
+      eventRiskReason: news?.eventRiskReason,
       entryType,
       entryZone,
       entryMid,
@@ -250,6 +300,8 @@ export function buildTradePlan(
       rateRegimeFlag: rateRegime,
       positioningRegimeFlag: posRegime,
       vetoTriggered: false,
+      eventRiskActive: news?.eventRiskActive ?? false,
+      eventRiskReason: news?.eventRiskReason,
       entryType,
       entryZone,
       entryMid,
@@ -287,6 +339,8 @@ export function buildTradePlan(
     rateRegimeFlag: rateRegime,
     positioningRegimeFlag: posRegime,
     vetoTriggered: false,
+    eventRiskActive: news?.eventRiskActive ?? false,
+    eventRiskReason: news?.eventRiskReason,
     entryType: 'STAND_ASIDE',
     entryZone: `Local 5d Range: [Floor: ${tech.localSwingLow5d} | Ceiling: ${tech.localSwingHigh5d}]`,
     entryMid: tech.channelMid,
