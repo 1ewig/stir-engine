@@ -31,6 +31,9 @@ export async function executeFullSystem(config: SystemConfig = DEFAULT_CONFIG): 
   console.log("   Calibrated for 2-Week to 1-Month Legs (Macro / CoT / News & Events / Tech)   ");
   console.log("================================================================================\n");
 
+  // Reset health logs for the new execution cycle
+  dataProvider.healthLogs = [];
+
   const [macro, positioning, tech, news] = await Promise.all([
     runMacroEngine(),
     runPositioningEngine(),
